@@ -1,0 +1,19 @@
+{
+    "name": "Unity.ProjectVania.Editor",
+    "rootNamespace": "Unity.ProjectVania.EditorTools",
+    "references": [
+        "Unity.ProjectVania.Core",
+        "Unity.ProjectVania.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

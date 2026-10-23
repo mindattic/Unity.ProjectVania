@@ -21,3 +21,5 @@
 *.log
 __pycache__/
 /.utmp/
+/Tests/**/bin/
+/Tests/**/obj/
