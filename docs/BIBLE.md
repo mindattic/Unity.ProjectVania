@@ -24,7 +24,7 @@ rebuild's job is to be a faithful, clean, tested version of exactly that.
 ## Pillars
 
 1. **The platforming feel is the product.** The numbers in §4.2 (acceleration 14000, run cap 200,
-   drag 0.58 / 0.65 per frame, the 0.6 s held-jump curve, the 83 px/s wall slide, gravity 10 per
+   drag 0.58 / 0.65 per frame, the fixed 0.6 s jump curve, the 83 px/s wall slide, gravity 10 per
    frame, terminal speed 500) are kept verbatim and stepped at a fixed 60 Hz, because the original
    tuned them per frame, not per second. See §4.
 2. **The world is a grid you can repaint live.** A 118 x 75 grid of 16 px cells, hard cells block,
@@ -85,11 +85,15 @@ standard.
 | 4 | `step2` and `drag` cues restarted every frame | **Fix**: one `step2` per run-animation frame advance; `drag` restarted when its 0.26 s clip ends |
 | 5 | Shift or pad A held blocks moving | **Fix**: neither blocks movement; Shift has no binding |
 | 6 | Wall jump climbs before pushing away | **Keep, confirm in play** (§4.7) |
-| 8 | Last name never chosen | **Fix**: every name is selectable; `Other` gender is not exposed |
-| 9, 10 | Palette Y clamp off by one; no bounds check on the edited cell | **Fix**: clamp to the last row; no painting or highlighting outside the grid |
+| 7 | Terminal-speed landing while moving leaves one frame of Falling on OnGround | **Keep**: A6's frame-replay tests assert it |
+| 8 | Last name never chosen; `Other` gender returns null | **Fix**: every name is selectable; `Other` is not exposed |
+| 9, 10 | `Tile(x, y)` mix-up draws the sheet 180 times; palette Y clamp off by one; right step unbounded; no bounds check on the edited cell | **Fix**: the palette draws each tile once at its place; clamp to the sheet in both axes; no painting or highlighting outside the grid |
 | 11 | Short console commands crash | **Fix**: too few words prints a usage line; nothing throws |
+| 11b | `console clear` spares `History[0]` | **Keep** (it is the echoed command line) |
+| 12 | Sun cycle and ActionCross never run | **Keep inert** as data (U.VAN-US-A16) |
 | 13 | `fade out` snaps clear when it finishes | **Fix**: it holds black until `fade in` or `fade off` |
 | 14 | `icon_poisondart` loads the parry icon; `icon_consecrate` unloaded | **Fix** in the data: each icon is its own file |
+| 15 | Unused library code (`Quad`, `LinkedList`, `TileGrid`, `Event`...) and files outside the project | **Drop**: no behaviour to keep |
 
 **Audio.** Music never starts by itself, as in the original; only `play music` / `play battle` start it
 (§11). The XACT banks become a cue table in data (name, clip, volume in dB, loop, category), and the
@@ -100,7 +104,10 @@ standard.
 
 **Effects.** The one effect used, `filter`, is a 1 % radial vignette (its `refractSampler` was never
 bound, so it never refracted); it becomes a URP full-screen pass over the world camera with its
-parameters as data. `bloom`, `negative`, `pause` and `water` are ported as selectable post-process
+parameters as data. This is a **deliberate deviation** from RECONSTRUCTION 6.1: the original darkened by
+distance within each sprite's own UV (every tile, player and name vignetted individually); a screen-space
+pass vignettes the screen corners instead. At `burn = 0.01` the difference is near invisible, and the
+per-sprite look can be restored with a sprite material if the owner wants it. `bloom`, `negative`, `pause` and `water` are ported as selectable post-process
 presets that nothing enables, mirroring the original; the five effects that exist only in the earlier
 copy (`basic`, `pointsprite`, `rain`, `snow`, `riemer`) are out of scope (§17).
 

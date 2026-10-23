@@ -16,7 +16,7 @@ engineering record the rebuild is built from.
 The original is an engine-first sandbox from 2009 whose platforming feel is worth keeping exactly:
 
 - **Per-frame, hand-tuned platforming.** Acceleration 14000, a 200 px/s run cap, ground and air drag
-  of 0.58 and 0.65 per frame, a held-jump power curve that rises about 81 px, a wall slide that caps
+  of 0.58 and 0.65 per frame, a fixed 0.6 s jump curve that rises about 76 px and that releasing the key does not shorten, a wall slide that caps
   at 83 px/s, a kneel on a hard landing and a slide out of a run.
 - **A grid you can paint while you play.** One key flips the running game into a map editor: a tile
   palette, a cursor that scrolls the camera, left click to place a solid tile, right click to erase,

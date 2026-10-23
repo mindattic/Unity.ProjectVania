@@ -713,7 +713,7 @@ running game. Dimensions in pixels.
 | `...\Richter`, `Playable\Untitled.png` (768x64), `Characters\frame_10.png` (640x64) | idle/run strips | no | no |
 | `Gui\Hud` | `portrait_frame`, `portrait_glass` (99x110), `quick_bar_frame`, `quick_bar_glass` (261x105), `action_cross_frame`, `_glass` (145x145), `arrow1` (16x16), `bar_health` (135x17), `demo_gui`, `demo_gui_0`, `gui_0`, `gui_1` (800x600 mock-ups) | all but the 800x600 mock-ups | portrait, quick bar, arrow; the rest unused |
 | `Gui\Portraits` | 7 portraits, 84x94 (`portrait_1`, archer, paladin, priest, rogue, soldier, wizard) | all | only `portrait_1` |
-| `Gui\Icons` | 4 action buttons 48x48 (`action_A/B/X/Y`); 31 skill icons 64x64 or 48x48 (assassinate, attack, aura, battlecry, bow, consecrate, crossbow, falcon, fireball, flashheal, icewall, lifewell, lightning, mace, might, parry, phalanx, poisondart, pray, redemption, regen, repair, selectsquad, shield, shoot, stab, trap, vanish, wand) | all but `icon_consecrate`; `icon_poisondart` is loaded from `icon_parry.png` (a typo) | none (ActionCross is off) |
+| `Gui\Icons` | 4 action buttons 48x48 (`action_A/B/X/Y`); 29 skill icons 64x64 or 48x48 (assassinate, attack, aura, battlecry, bow, consecrate, crossbow, falcon, fireball, flashheal, icewall, lifewell, lightning, mace, might, parry, phalanx, poisondart, pray, redemption, regen, repair, selectsquad, shield, shoot, stab, trap, vanish, wand) | all but `icon_consecrate` (both `icon_poisondart.png` and `icon_consecrate.png` exist as files); `icon_poisondart` is loaded from `icon_parry.png` (a typo) | none (ActionCross is off) |
 | `Textures` | `menu1` 543x742; `console1` 608x203; `cursor_hand_topleft` 13x18; `white`, `red`, `blank` 1x1; `brick` 512x512; `block` 76x76; `console2` 608x203; `foggy_woods` 500x347; `menu2` 600x742; `metal1` 800x600 | `menu1, console1, cursor, white, red, blank, brick, console2, foggy_woods, metal1` (not `block`, `menu2`) | menu1, console1, cursor, white, red |
 | `MapEditor` | `1x1.bmp` (loaded as `null`), `cell.png` 16x16, `block.png` 16x16, `icons.dds`, `maps1.png` 1024x1024 (the segment atlas), `maps.txt` | `null, cell, block, icons, maps1` | `null` (the outline and fills), `cell` (debug box) |
 | `TilePalette` | `square_selector` 16x16, `tilepalette_background` 300x300 | both | editor |
@@ -755,7 +755,8 @@ Each is decided in the BIBLE: keep (it is the game's feel), fix, or drop.
    while moving the action stays `Falling` with terrain `OnGround` for a frame (traced).
 8. `g.RandomName` never returns the last name; a `Gender.Other` returns null.
 9. `Tile(x, y)` constructor mix-up (section 12.2); the palette Y clamp is off by one.
-10. Editor cell index has no bounds check at the right and bottom edges.
+10. Editor cell index has no bounds check at the right and bottom edges, and the palette's right step is
+    unbounded (stepping past the last tile selects a tile off the sheet).
 11. Console commands with too few words crash the game; `console clear` spares `History[0]`.
 12. The Sun cycle and the ActionCross never run, and the portrait and quick bar are static pictures.
 13. `Lenses.Off` resets the tint, so a finished `fade out` flashes clear.
