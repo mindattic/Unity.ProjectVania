@@ -6,7 +6,7 @@ namespace Unity.ProjectVania.Core.Simulation
 {
     /// <summary>
     /// The rules and state of the game. State is read through get-only properties and changes only inside
-    /// <see cref="Step"/>, by applying queued commands, each producing events. Frame order within a step
+    /// Step, by applying queued commands, each producing events. Frame order within a step
     /// follows the original (RECONSTRUCTION 1): input commands first, then the systems in order.
     /// </summary>
     public sealed class GameWorld
@@ -33,6 +33,7 @@ namespace Unity.ProjectVania.Core.Simulation
         public void Submit(ICommand command)
         {
             if (command == null) throw new ArgumentNullException(nameof(command));
+            if (!command.Player.IsValid) throw new ArgumentException("A command must name its player.", nameof(command));
             _pending.Enqueue(command);
         }
 
@@ -46,7 +47,7 @@ namespace Unity.ProjectVania.Core.Simulation
         }
 
         /// <summary>One 1/60 s step: apply every queued command in order, then advance the tick.</summary>
-        public void Step()
+        void Step()
         {
             while (_pending.Count > 0) Apply(_pending.Dequeue());
             Tick++;

@@ -81,5 +81,13 @@ namespace Unity.ProjectVania.Core.Tests
         {
             Assert.Throws<System.ArgumentNullException>(() => new GameWorld().Submit(null));
         }
+
+        [Test]
+        public void ACommandWithNoPlayerIsRejected()
+        {
+            Assert.Throws<System.ArgumentException>(() => new GameWorld().Submit(default(SetGameState)));
+            Assert.That(default(PlayerId).IsValid, Is.False);
+            Assert.That(PlayerId.One.Value, Is.EqualTo(0));
+        }
     }
 }
