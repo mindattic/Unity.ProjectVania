@@ -2,7 +2,10 @@
     "name": "Unity.ProjectVania.Runtime",
     "rootNamespace": "Unity.ProjectVania",
     "references": [
-        "Unity.ProjectVania.Core"
+        "Unity.ProjectVania.Core",
+        "Unity.Shared",
+        "Unity.Shared.Core",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

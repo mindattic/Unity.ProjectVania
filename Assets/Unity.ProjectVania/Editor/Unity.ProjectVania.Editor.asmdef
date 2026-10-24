@@ -3,7 +3,10 @@
     "rootNamespace": "Unity.ProjectVania.EditorTools",
     "references": [
         "Unity.ProjectVania.Core",
-        "Unity.ProjectVania.Runtime"
+        "Unity.ProjectVania.Runtime",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Universal.2D.Runtime"
     ],
     "includePlatforms": [
         "Editor"

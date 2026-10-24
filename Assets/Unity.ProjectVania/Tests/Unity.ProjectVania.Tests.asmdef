@@ -5,7 +5,12 @@
         "Unity.ProjectVania.Core",
         "Unity.ProjectVania.Runtime",
         "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
+        "UnityEditor.TestRunner",
+        "Unity.ProjectVania.Editor",
+        "Unity.Shared",
+        "Unity.Shared.Core",
+        "Unity.InputSystem",
+        "Unity.RenderPipelines.Universal.Runtime"
     ],
     "includePlatforms": [
         "Editor"
