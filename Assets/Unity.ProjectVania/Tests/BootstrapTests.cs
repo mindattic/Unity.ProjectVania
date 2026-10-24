@@ -79,6 +79,9 @@ namespace Unity.ProjectVania.Tests
             Assert.That(host, Is.Not.Null);
             Assert.That(Bootstrap.Current, Is.SameAs(host));
             Assert.That(host.World, Is.Not.Null);
+            Assert.That(host.World.Map, Is.Not.Null, "the world is built on the bridge level");
+            Assert.That(host.World.Map.Columns, Is.EqualTo(118));
+            Assert.That(host.World.Map.CellMatchesState(20, 0, Unity.ProjectVania.Core.World.CellState.Hard), Is.True);
             Assert.That(Profiles.IsConfigured, Is.True);
             Assert.That(Profiles.Current.Settings, Is.Not.Null);
 

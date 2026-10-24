@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Unity.ProjectVania.Core.Commands;
+using Unity.ProjectVania.Core.World;
 
 namespace Unity.ProjectVania.Core.Simulation
 {
@@ -21,6 +22,20 @@ namespace Unity.ProjectVania.Core.Simulation
         readonly Queue<ICommand> _pending = new Queue<ICommand>();
         readonly List<IGameEvent> _events = new List<IGameEvent>();
         readonly FixedStepper _clock = new FixedStepper();
+
+        /// <summary>A world with no map (the state and command tests that need no grid).</summary>
+        public GameWorld()
+        {
+        }
+
+        /// <summary>A world on <paramref name="map"/> (the bridge level, <see cref="Map.FromSettings"/>).</summary>
+        public GameWorld(Map map)
+        {
+            Map = map ?? throw new ArgumentNullException(nameof(map));
+        }
+
+        /// <summary>The collision grid (RECONSTRUCTION 5), or null for a world built without one.</summary>
+        public Map Map { get; }
 
         /// <summary>Steps taken so far.</summary>
         public long Tick { get; private set; }

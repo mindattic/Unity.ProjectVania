@@ -2,6 +2,7 @@ using Unity.ProjectVania.Core.Commands;
 using Unity.ProjectVania.Core.Input;
 using Unity.ProjectVania.Core.Settings;
 using Unity.ProjectVania.Core.Simulation;
+using Unity.ProjectVania.Core.World;
 using UnityEngine;
 
 namespace Unity.ProjectVania
@@ -24,7 +25,7 @@ namespace Unity.ProjectVania
         public void Initialize(GameSettings settings)
         {
             Settings = settings;
-            World = new GameWorld();
+            World = new GameWorld(Map.FromSettings(settings.Grid));
             Device?.Dispose();
             Device = new InputSystemDevice(settings.Input.StickPressPoint);
             Input = new PlayerInput(PlayerId.One, settings.Input, Device);
