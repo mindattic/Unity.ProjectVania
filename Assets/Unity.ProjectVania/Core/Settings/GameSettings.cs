@@ -24,11 +24,12 @@ namespace Unity.ProjectVania.Core.Settings
         public const string AudioFile = "audio.json";
         public const string SegmentsFile = "segments.json";
         public const string NamesFile = "names.json";
+        public const string InputFile = "input.json";
 
         /// <summary>Every data file the registry reads.</summary>
         public static readonly string[] Files =
         {
-            PlayerFile, CharactersFile, AnimationsFile, GridFile, MenuFile, CameraFile, ConsoleFile, AudioFile, SegmentsFile, NamesFile,
+            PlayerFile, CharactersFile, AnimationsFile, GridFile, MenuFile, CameraFile, ConsoleFile, AudioFile, SegmentsFile, NamesFile, InputFile,
         };
 
         private GameSettings()
@@ -45,6 +46,7 @@ namespace Unity.ProjectVania.Core.Settings
         public AudioData Audio { get; private set; }
         public SegmentData Segments { get; private set; }
         public NameData Names { get; private set; }
+        public InputData Input { get; private set; }
 
         /// <summary>The original-to-Runtime unit mapping (grid.json units).</summary>
         public OriginalUnits Units { get; private set; }
@@ -74,6 +76,7 @@ namespace Unity.ProjectVania.Core.Settings
                 Audio = Read(source, AudioFile, errors, AudioData.Read),
                 Segments = Read(source, SegmentsFile, errors, SegmentData.Read),
                 Names = Read(source, NamesFile, errors, NameData.Read),
+                Input = Read(source, InputFile, errors, InputData.Read),
             };
 
             if (errors.Count == 0)

@@ -10,6 +10,7 @@
         "Unity.Shared",
         "Unity.Shared.Core",
         "Unity.InputSystem",
+        "Unity.InputSystem.TestFramework",
         "Unity.RenderPipelines.Universal.Runtime"
     ],
     "includePlatforms": [

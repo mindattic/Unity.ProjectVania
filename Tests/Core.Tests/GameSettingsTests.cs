@@ -12,7 +12,7 @@ namespace Unity.ProjectVania.Core.Tests
     /// </summary>
     public class GameSettingsTests
     {
-        private static string ShippedFolder
+        internal static string ShippedFolder
         {
             get
             {

@@ -3,7 +3,7 @@ codex: 1
 project: Unity.ProjectVania
 layer: bible
 status: living
-updated: 2026-10-23
+updated: 2026-10-24
 ---
 
 # ProjectVania — rebuild bible
@@ -99,8 +99,21 @@ standard.
 (§11). The XACT banks become a cue table in data (name, clip, volume in dB, loop, category), and the
 `music1` cue and unused footsteps are kept in the table, unplayed, as the original had them.
 
-**Input.** The Input System with a code-built action map; bindings are data (§3.1). Wheel zoom,
-`=`/`-` zoom, rotate, scroll, mode-cycle and editor-toggle keep their original steps and signs.
+**Input.** The Input System supplies the devices; the action map is Core's (U.VAN-US-A4). Bindings are data
+(`input.json`: every action's XNA-named keys and pad buttons, the console's typing chain), validated on load.
+`InputRouter` is the original's `InputManager` dispatch: one handler per game state chosen by the state at the start
+of the step, the original's `if` / `else if` chains and order, and its edge test **per control, not per action**
+(holding S, a press of Down still moves the menu down), which is why the routing is Core code over raw control state
+rather than Input System actions, whose press is per action. Input is read once per 60 Hz step, as the original read
+it once per frame; the Runtime device latches a press that starts and ends between two steps, and queues wheel
+notches one per step. Commands carry the driver's player id and are applied in issue order within the step, so Esc
+and M in one frame open the menu and then toggle the editor from it, as the original's handler did. Wheel zoom,
+`=`/`-` zoom, rotate, scroll, mode-cycle and editor-toggle keep their original steps and signs. Kept as the
+original: pad A jumps on every step it is held (Space only on press); the middle mouse button toggles the editor in
+every state, the menu and console included; the console types a key with no character as its lower-case name
+("rightshift", "f12"); the pad's left trigger drives both rumble motors. Fixed: defect 5 (Shift or pad A no longer
+block moving). The original's empty stubs (Q, W, J, K, L, 1-5, pad X/Y/B, the jump release) issue nothing. Until the
+console's slide is built (A11), opening it enters the Console state at once rather than when the slide ends.
 
 **Effects.** The one effect used, `filter`, is a 1 % radial vignette (its `refractSampler` was never
 bound, so it never refracted); it becomes a URP full-screen pass over the world camera with its
