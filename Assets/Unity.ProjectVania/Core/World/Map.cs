@@ -94,7 +94,11 @@ namespace Unity.ProjectVania.Core.World
         {
             if (!CellInRange(x, y)) throw new ArgumentOutOfRangeException(nameof(x), $"Cell [{x}, {y}] is outside the {Columns} x {Rows} grid.");
             _cells[x, y] = cell;
+            Revision++;
         }
+
+        /// <summary>Counts every change to a cell, so a view can redraw the grid only when it has changed.</summary>
+        public int Revision { get; private set; }
 
         /// <summary><c>CellInRange</c>: whether an index is on the grid.</summary>
         public bool CellInRange(int x, int y) => x >= 0 && y >= 0 && x < Columns && y < Rows;

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.ProjectVania.Core.Display;
 using Unity.ProjectVania.Core.Simulation;
 
 namespace Unity.ProjectVania.Core.Settings
@@ -378,6 +379,9 @@ namespace Unity.ProjectVania.Core.Settings
         public int StepsPerSecond { get; private set; }
         public Pair ReferenceScreen { get; private set; }
 
+        /// <summary>How the map is drawn (grid.json draw: the clear colour, the outline and the layers).</summary>
+        public MapDrawData Draw { get; private set; }
+
         /// <summary>Columns of cells (118 for 1900 / 16, truncated).</summary>
         public int Columns => MapWidth / CellSize;
 
@@ -408,6 +412,7 @@ namespace Unity.ProjectVania.Core.Settings
             data.PixelsPerUnit = units.Ppu;
             data.StepsPerSecond = units.Steps;
             data.ReferenceScreen = r.Pair("referenceScreen", 1f);
+            data.Draw = r.Section("draw", MapDrawData.Read);
             r.Check(data.PixelsPerUnit == data.CellSize, "units", "pixelsPerUnit must equal cellSize (one grid cell is one unit)");
             r.Check(data.StepsPerSecond == FixedStepper.StepsPerSecond, "units", $"stepsPerSecond must equal the stepper's {FixedStepper.StepsPerSecond}");
             r.Check(data.MapWidth >= data.CellSize && data.MapHeight >= data.CellSize, "cellSize", "must fit inside the map");
@@ -419,6 +424,51 @@ namespace Unity.ProjectVania.Core.Settings
 
             return data;
         }
+    }
+
+    /// <summary>
+    /// grid.json draw: <c>SceneManager.Draw</c>'s clear colour and <c>Map.Draw</c>'s outline and layers (RECONSTRUCTION 5,
+    /// 6). Colours are [r, g, b, a] of 0..255.
+    /// </summary>
+    public sealed class MapDrawData
+    {
+        public Rgba ClearColour { get; private set; }
+        public Rgba OutlineColour { get; private set; }
+        public float OutlineThickness { get; private set; }
+
+        /// <summary><c>Map.ShowLayers</c> (true; nothing in the original turns it off).</summary>
+        public bool ShowLayers { get; private set; }
+
+        /// <summary><c>Map.Layers</c>, drawn in this order after the outline and before the cells.</summary>
+        public IReadOnlyList<MapLayerData> Layers { get; private set; }
+
+        internal static MapDrawData Read(SettingsReader r) => new MapDrawData
+        {
+            ClearColour = Rgba.FromQuad(r.Quad("clearColour", 0f, 255f)),
+            OutlineColour = Rgba.FromQuad(r.Quad("outlineColour", 0f, 255f)),
+            OutlineThickness = r.Positive("outlineThickness"),
+            ShowLayers = r.Flag("showLayers"),
+            Layers = r.Each("layers", MapLayerData.Read, allowEmpty: true),
+        };
+    }
+
+    /// <summary>One <c>Layer</c>: a texture drawn whole and unscaled at a position, tinted by a colour.</summary>
+    public sealed class MapLayerData
+    {
+        /// <summary>The texture's name (the original's TextureManager key, and the art's file name).</summary>
+        public string Asset { get; private set; }
+
+        /// <summary>Its top-left corner in the map's pixels.</summary>
+        public Pair Position { get; private set; }
+
+        public Rgba Colour { get; private set; }
+
+        internal static MapLayerData Read(SettingsReader r) => new MapLayerData
+        {
+            Asset = r.Text("asset"),
+            Position = r.Pair("position"),
+            Colour = Rgba.FromQuad(r.Quad("colour", 0f, 255f)),
+        };
     }
 
     /// <summary>camera.json: CameraManager's constants (RECONSTRUCTION 7).</summary>

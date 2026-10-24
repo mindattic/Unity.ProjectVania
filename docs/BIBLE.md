@@ -157,6 +157,24 @@ its own driven index, wrapping both ways as `CyclePlayerLeft/Right`, with an eve
 Until the camera story (A9) builds the original's modes, a stand-in keeps the camera centred on player one's driven
 character so the switch is visible.
 
+**The map on screen (U.VAN-US-A8).** `MapView` draws `Map.Draw` in its order under the characters (sorting orders
+-300, -200 + layer, -100; characters from 0), over the game camera's clear colour, CornflowerBlue (100, 149, 237).
+grid.json's `draw` section holds the clear colour, the outline's colour and thickness, `showLayers` and the layer list
+(only `area_1` at (0, 0) in white: the four parallax images were never loaded and are not listed). The outline is
+Core's `MapDrawing.Outline`, worked from `Shape.CreateBox` and its 1x1 pixel rotated about its top-left and stretched
+to (length, 1): four 1 px strips just outside the map (x = -1, y = 1200, x = 1900, y = -1), each the edge's length, so
+the four corner pixels stay uncovered; the right strip lies under the 1920 px backdrop, which is drawn after it, so it is
+hidden as it was in the original. The backdrop is `Resources/World/area_1.png` whole and unscaled, 1920 x 1200 at 16 px
+per unit with its top-left at the map's origin. The cells are painted in Core (`MapDrawing.PaintCells`): each drawn
+cell's source rectangle of `tileset_default` (the original `Tileset/default.png`, 303 x 173, imported readable) at the
+cell's position, white-tinted at its alpha, composited straight-alpha in the original's `foreach` order (column-major)
+into one point-filtered 1888 x 1200 texture, so drawing it over the backdrop is the same as drawing every cell over it.
+A cell is drawn if it is Hard or Soft, or whatever its state while the game is in the map editor (empty cells then show
+as the first tile at alpha 64). The texture is repainted only when `Map.Revision` changes or the game enters or leaves
+the editor; a whole repaint is a few tens of milliseconds, so A14's painting may want a one-cell repaint. Art is imported
+in code (`WorldArtImporter`), point-filtered and unscaled. `unity.ps1 capture` renders the camera to
+`Logs/Capture/*.png` (the followed view, the top-left corner, and the editor) to see it.
+
 **Effects.** The one effect used, `filter`, is a 1 % radial vignette (its `refractSampler` was never
 bound, so it never refracted); it becomes a URP full-screen pass over the world camera with its
 parameters as data. This is a **deliberate deviation** from RECONSTRUCTION 6.1: the original darkened by

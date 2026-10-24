@@ -11,7 +11,7 @@ namespace Unity.ProjectVania
     /// The code-built bootstrap (RECONSTRUCTION 0): the project's one scene is empty, and this composes everything
     /// at start-up instead of Inspector wiring. It points the shared profiles at the player's data folder, loads the
     /// settings registry (stopping with every error listed if a file is bad), then builds the pixel-perfect camera,
-    /// the game host, a sprite per character, and the UI Toolkit root (with the characters' names) at the 800x600 reference.
+    /// the game host, the map, a sprite per character, and the UI Toolkit root (with the characters' names) at the 800x600 reference.
     /// </summary>
     public static class Bootstrap
     {
@@ -74,15 +74,24 @@ namespace Unity.ProjectVania
             cameraObject.transform.position = new Vector3(0f, 0f, -10f);
             var camera = cameraObject.AddComponent<Camera>();
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = new Color32(100, 149, 237, 255); // XNA CornflowerBlue, the original's clear colour
+            camera.backgroundColor = MapView.ToColor(settings.Grid.Draw.ClearColour); // XNA CornflowerBlue, SceneManager.Draw's clear colour
             var pixelPerfect = cameraObject.AddComponent<PixelPerfectCamera>();
             pixelPerfect.PixelsPerUnit = settings.Grid.PixelsPerUnit;
             cameraObject.AddComponent<FollowDrivenCharacter>().Initialize(host.World, host.Input.Player, settings.Grid.PixelsPerUnit);
 
+            BuildMap(root.transform, host, settings);
             BuildCharacters(root.transform, host, settings);
             var ui = BuildUi(root.transform);
             ui.gameObject.AddComponent<NameTags>().Initialize(host.World, settings.Characters.NameTag, camera, settings.Grid.PixelsPerUnit, ui.rootVisualElement);
             return host;
+        }
+
+        /// <summary>The map under the characters: outline, layers, then cells (RECONSTRUCTION 5, 6).</summary>
+        static void BuildMap(Transform parent, GameHost host, GameSettings settings)
+        {
+            var map = new GameObject("Map");
+            map.transform.SetParent(parent, false);
+            map.AddComponent<MapView>().Initialize(host.World, settings.Grid);
         }
 
         /// <summary>One sprite per Core character, drawn from its sheet's strips (RECONSTRUCTION 4.8).</summary>

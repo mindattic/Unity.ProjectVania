@@ -2,9 +2,10 @@
 #   .\unity.ps1 compile            import and compile only
 #   .\unity.ps1 test [-Filter X]   EditMode tests (results in Logs\editmode.xml)
 #   .\unity.ps1 build              Windows player in Build\ProjectVania
+#   .\unity.ps1 capture            renders the game camera to Logs\Capture\*.png (needs graphics)
 # Never touches an editor the owner has open: it runs its own batchmode instance on this folder.
 param(
-    [Parameter(Mandatory = $true)][ValidateSet("compile", "test", "build")][string]$Mode,
+    [Parameter(Mandatory = $true)][ValidateSet("compile", "test", "build", "capture")][string]$Mode,
     [string]$Filter = "",
     [string]$Output = "Build/ProjectVania/ProjectVania.exe"
 )
@@ -15,8 +16,12 @@ $unity = "C:\Program Files\Unity\Hub\Editor\$version\Editor\Unity.exe"
 if (-not (Test-Path $unity)) { throw "Unity $version not found at $unity" }
 New-Item -ItemType Directory -Force (Join-Path $project "Logs") | Out-Null
 $log = Join-Path $project "Logs/unity-$Mode.log"
-$unityArgs = @("-batchmode", "-nographics", "-projectPath", $project, "-logFile", $log)
+$unityArgs = @("-batchmode", "-projectPath", $project, "-logFile", $log)
+if ($Mode -ne "capture") { $unityArgs = @("-nographics") + $unityArgs }
 switch ($Mode) {
+    "capture" {
+        $unityArgs += @("-executeMethod", "Unity.ProjectVania.EditorTools.SceneCapture.Capture", "-captureOutput", (Join-Path $project "Logs/Capture"))
+    }
     "compile" { $unityArgs += @("-quit") }
     "test" {
         $unityArgs += @("-runTests", "-testPlatform", "EditMode", "-testResults", (Join-Path $project "Logs/editmode.xml"))

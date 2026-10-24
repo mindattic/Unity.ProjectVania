@@ -17,5 +17,15 @@
     "pixelsPerUnit": 16,
     "stepsPerSecond": 60
   },
-  "referenceScreen": [800, 600]
+  "referenceScreen": [800, 600],
+  "draw": {
+    "_about": "SceneManager.Draw clears to CornflowerBlue, then Map.Draw draws the outline (Shape.CreateBox over the map rectangle, a 1 px white line of stretched 1x1 texture), then each layer if ShowLayers, then the cells (RECONSTRUCTION 5, 6). area_1 is the 1920 x 1200 painted mountain-farmhouse backdrop, drawn whole and unscaled at (0, 0) in white; the four parallax images beside it were never loaded and are not listed. Colours are [r, g, b, a].",
+    "clearColour": [100, 149, 237, 255],
+    "outlineColour": [255, 255, 255, 255],
+    "outlineThickness": 1,
+    "showLayers": true,
+    "layers": [
+      { "asset": "area_1", "position": [0, 0], "colour": [255, 255, 255, 255] }
+    ]
+  }
 }

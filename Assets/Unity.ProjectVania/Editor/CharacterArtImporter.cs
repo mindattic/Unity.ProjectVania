@@ -20,7 +20,12 @@ namespace Unity.ProjectVania.EditorTools
                 return;
             }
 
-            var importer = (TextureImporter)assetImporter;
+            ApplyPixelArt((TextureImporter)assetImporter, readable: false);
+        }
+
+        /// <summary>The original's art as XNA drew it: whole, unscaled, uncompressed, no mipmaps, point-filtered.</summary>
+        public static void ApplyPixelArt(TextureImporter importer, bool readable)
+        {
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
             importer.npotScale = TextureImporterNPOTScale.None;
@@ -29,7 +34,28 @@ namespace Unity.ProjectVania.EditorTools
             importer.wrapMode = TextureWrapMode.Clamp;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
             importer.alphaIsTransparency = true;
-            importer.isReadable = false;
+            importer.isReadable = readable;
+        }
+    }
+
+    /// <summary>
+    /// Imports the world's art (RECONSTRUCTION 5, 13) as <see cref="CharacterArtImporter.ApplyPixelArt"/> does: the
+    /// 1920 x 1200 backdrop is drawn at its original size and must not be scaled. The tileset is also readable, because
+    /// Core paints the grid's cells from its pixels (<see cref="MapView"/>).
+    /// </summary>
+    public sealed class WorldArtImporter : AssetPostprocessor
+    {
+        public const string Folder = "Assets/Unity.ProjectVania/Resources/" + MapView.ResourceFolder + "/";
+
+        void OnPreprocessTexture()
+        {
+            if (!assetPath.StartsWith(Folder))
+            {
+                return;
+            }
+
+            var name = System.IO.Path.GetFileNameWithoutExtension(assetPath);
+            CharacterArtImporter.ApplyPixelArt((TextureImporter)assetImporter, readable: name.StartsWith(MapView.TilesetPrefix));
         }
     }
 }
