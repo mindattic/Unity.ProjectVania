@@ -114,7 +114,7 @@ namespace Unity.ProjectVania.Core.Tests
         }
 
         [Test]
-        public void TerminalSpeedLanding_KneelsOnTheFloorAndStaysKneeling()
+        public void TerminalSpeedLanding_KneelsOnTheFloorThenStandsOnRelease()
         {
             var w = Bridge();
             var c = w.Characters[0];
@@ -132,13 +132,15 @@ namespace Unity.ProjectVania.Core.Tests
             Assert.That(c.Velocity.Y, Is.EqualTo(0f));
             Assert.That(c.Position.Y, Is.GreaterThanOrEqualTo(480f).And.LessThan(481f));
 
-            // Kept (defect 3): with nothing held, the kneel is not left.
-            for (int i = 0; i < 30; i++) Step(w, Idle);
-            Assert.That(c.Action, Is.EqualTo(ActionKind.Kneeling));
+            // Fixed (defect 3, owner decision 2026-10-23): with nothing held, the next idle step stands him up.
+            Step(w, Idle);
+            Assert.That(c.Action, Is.EqualTo(ActionKind.Standing));
+            for (int i = 0; i < 29; i++) Step(w, Idle);
+            Assert.That(c.Action, Is.EqualTo(ActionKind.Standing));
             Assert.That(c.Position.Y, Is.EqualTo(480f));
 
-            // The idle twin lands the same way, without being driven.
-            Assert.That(w.Characters[1].Action, Is.EqualTo(ActionKind.Kneeling));
+            // The idle twin lands and stands up the same way, without being driven.
+            Assert.That(w.Characters[1].Action, Is.EqualTo(ActionKind.Standing));
         }
 
         [Test]
@@ -363,8 +365,10 @@ namespace Unity.ProjectVania.Core.Tests
         }
 
         [Test]
-        public void Kneel_WhenStillKneelsAndMovingRunsOutOfIt()
+        public void Kneel_WhenStillKneelsAndStandsAsSoonAsSIsReleased()
         {
+            // Fixed (defect 3, owner decision 2026-10-23, player.json kneel.releaseStandsUp): the original held the
+            // kneel until a move or a jump; the rebuild now stands him up the next idle step instead.
             var w = World(FloorOnly());
             var c = w.Characters[0];
             Settle(w);
@@ -373,7 +377,7 @@ namespace Unity.ProjectVania.Core.Tests
             Step(w, Down);
             Assert.That(c.Action, Is.EqualTo(ActionKind.Kneeling));
             Step(w, Idle);
-            Assert.That(c.Action, Is.EqualTo(ActionKind.Kneeling));
+            Assert.That(c.Action, Is.EqualTo(ActionKind.Standing));
             Step(w, Left);
             Assert.That(c.Action, Is.EqualTo(ActionKind.Running));
             Assert.That(c.Facing, Is.EqualTo(-1));

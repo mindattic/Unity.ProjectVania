@@ -23,9 +23,10 @@ namespace Unity.ProjectVania.Core.Characters
     /// <para>
     /// Fixed defects (BIBLE, RECONSTRUCTION 15): 1, a kneeling jump starts the slide with <see cref="IsJumping"/> clear,
     /// so the ordinary ground checks apply and the character is not trapped in the slide; 2, the collision size the
-    /// slide shrinks to is restored the moment the character leaves the slide. Kept as the original: 3 (a kneel is not
-    /// left by releasing down), 6 (a wall jump climbs along the wall until contact is lost) and 7 (a terminal-speed
-    /// landing while moving stays Falling on the ground for one frame).
+    /// slide shrinks to is restored the moment the character leaves the slide; 3, owner decision 2026-10-23
+    /// (<c>player.json</c>'s <c>kneel.releaseStandsUp</c>), releasing down now stands the character up instead of
+    /// holding the kneel forever as the original did. Kept as the original: 6 (a wall jump climbs along the wall
+    /// until contact is lost) and 7 (a terminal-speed landing while moving stays Falling on the ground for one frame).
     /// </para>
     /// </summary>
     public sealed class PlayerCharacter
@@ -42,6 +43,13 @@ namespace Unity.ProjectVania.Core.Characters
         float _elapsed;
 
         bool _wasJumping;
+
+        // Owner decision 2026-10-23 (BIBLE defect 3, player.json kneel.releaseStandsUp): set whenever Kneel() runs
+        // during this step's commands (S held, even on a repeat frame that early-returns) and cleared at the end of
+        // the step, so the idle-stand check below can tell "held this frame" from "released", without that same
+        // check undoing the very frame a kneel starts (Movement is 0 either way) or pre-empting a same-frame slide
+        // jump, whose Jump() call still sees Kneeling before this step's physics run.
+        bool _kneelHeldThisStep;
 
         public PlayerCharacter(PlayerData tuning, Pair unitSize, PixelVector spawn)
         {
@@ -120,6 +128,7 @@ namespace Unity.ProjectVania.Core.Characters
         /// <summary><c>Initiate_Kneel</c>: kneel when still, slide when moving; never on a terminal-speed landing while moving.</summary>
         public void Kneel()
         {
+            _kneelHeldThisStep = true;
             if (Action == ActionKind.Kneeling || !_t.Ability.Kneel) return;
             if (Terrain != TerrainState.OnGround || IsJumping) return;
 
@@ -173,6 +182,7 @@ namespace Unity.ProjectVania.Core.Characters
             _position.X += _velocity.X * elapsed;
             _position.Y += _velocity.Y * elapsed;
             CheckActionState(elapsed);
+            _kneelHeldThisStep = false;
         }
 
         void CheckCollisions(Map map, float elapsed)
@@ -207,7 +217,8 @@ namespace Unity.ProjectVania.Core.Characters
                         {
                             Fall();
                         }
-                        else if (Movement == 0 && Action != ActionKind.Kneeling)
+                        else if (Movement == 0 &&
+                                 (Action != ActionKind.Kneeling || (_t.KneelReleaseStandsUp && !_kneelHeldThisStep)))
                         {
                             Stand();
                         }

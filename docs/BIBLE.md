@@ -81,7 +81,7 @@ standard.
 |---|---|---|
 | 1 | Slide-jump leaves `isJumping` set: trapped, cannot fall | **Fix**: the slide jump starts a slide with `isJumping` clear, so ordinary ground checks apply |
 | 2 | `UnitSize` stuck at (3,1) after a slide | **Fix**: restored to the character's size on leaving the slide |
-| 3 | A kneel is not left by releasing S | **Keep, confirm in play**: it reads as a deliberate crouch toggle; the verification story (A18) checks it and the owner may flip it |
+| 3 | A kneel is not left by releasing S | **Fix** (owner decision 2026-10-23, built by U.VAN-T23): releasing S now stands the character up on the next idle step; a held S, or a jump taken from the kneel, still reads as a kneel that frame, so a slide jump is unaffected. `player.json`'s `kneel.releaseStandsUp` is the data slot |
 | 4 | `step2` and `drag` cues restarted every frame | **Fix**: one `step2` per run-animation frame advance; `drag` restarted when its 0.26 s clip ends |
 | 5 | Shift or pad A held blocks moving | **Fix**: neither blocks movement; Shift has no binding |
 | 6 | Wall jump climbs before pushing away | **Keep, confirm in play** (§4.7) |
@@ -125,9 +125,11 @@ Both characters simulate every Play step; player n's commands drive character n 
 Defect 1's fix leaves `isJumping` clear on a kneeling jump, and with the ordinary ground checks back the idle test stands
 the character the same frame, so the kneel-jump "slide" is a one-frame nudge of about 2 px (the original's was barely
 3 px before it trapped him); A18's play-through should say whether it wants a longer slide. Defect 2 restores the 1 x 3
-size the moment the action leaves Sliding (including on Reset). Defects 3, 6 and 7 are as the original until
-U.VAN-T23 and U.VAN-T24 build the owner's kneel-release and push-off decisions (their player.json slots are not yet
-read).
+size the moment the action leaves Sliding (including on Reset). Defect 3 is fixed (U.VAN-T23): `player.json`'s
+`kneel.releaseStandsUp` stands the character up the step after S stops being held, read by `PlayerCharacter`'s idle
+check; it only triggers on a step where `Kneel()` is not also called, so a held kneel (or a jump taken from it, which
+still reads the action as Kneeling before this step's physics run) is unaffected. Defects 6 and 7 are as the original
+until U.VAN-T24 builds the owner's wall-jump push-off decision (that player.json slot is not yet read).
 
 **Effects.** The one effect used, `filter`, is a 1 % radial vignette (its `refractSampler` was never
 bound, so it never refracted); it becomes a URP full-screen pass over the world camera with its
@@ -152,8 +154,9 @@ proof of concept of the original's engine and toolbox and is then done.
 ## Decisions beyond the original (not yet made, flag when a story hits these)
 
 - Whether the idle twin should become a controllable second character (§18.2).
-- Whether the kneel should stand up on release, and the wall jump push-off (defects 3 and 6): decided
-  after the play-through in U.VAN-US-A18.
+- Whether the wall jump should push off at once (defect 6): decided after the play-through in
+  U.VAN-US-A18 (built by U.VAN-T24). Whether the kneel should stand up on release (defect 3) is
+  decided: fixed, built by U.VAN-T23.
 - A real window size and aspect policy beyond the inferred 800 x 600 (§18.3).
 
 ## Laws
