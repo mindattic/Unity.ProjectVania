@@ -12,7 +12,9 @@ namespace Unity.ProjectVania
     /// Every character's name over it (<c>SceneManager.DrawText</c>, RECONSTRUCTION 6 item 4): characters.json's
     /// <c>nameTag</c> writes, by default red at (X - 1, Y - 100) and then yellow at (X, Y), each centred on its x and
     /// lifted by the original's Top alignment, in an Arial 10 equivalent. UI Toolkit labels in the pixel-perfect
-    /// panel, placed each frame where the game camera shows the character, after every character is drawn.
+    /// panel, placed each frame where the game camera shows the character, after every character is drawn. The original
+    /// drew the names through the camera's matrix, so each label is scaled by the camera's magnification and turned with
+    /// it about its anchor, the top-centre of the lifted text.
     /// </summary>
     [DefaultExecutionOrder(100)]
     public sealed class NameTags : MonoBehaviour
@@ -66,6 +68,7 @@ namespace Unity.ProjectVania
                     label.style.unityTextAlign = TextAnchor.UpperCenter;
                     label.style.whiteSpace = WhiteSpace.NoWrap;
                     label.style.translate = new Translate(Length.Percent(-50), 0);
+                    label.style.transformOrigin = new TransformOrigin(Length.Percent(50), 0);
                     _labels.Add(label);
                     Layer.Add(label);
                 }
@@ -88,17 +91,25 @@ namespace Unity.ProjectVania
             }
 
             var alpha = (float)_world.Alpha;
+            // What GameCamera framed: its orthographic size is the unzoomed one over the magnification, and its turn
+            // (with a half turn for a negative magnification) is the original's rotation of the drawn text.
+            var magnification = PixelPerfect.OrthographicSize(_pixelsPerUnit) / _camera.orthographicSize;
+            var rotate = new Rotate(Angle.Degrees(_camera.transform.eulerAngles.z));
+            var scale = new Scale(new Vector2(magnification, magnification));
             var index = 0;
             foreach (var character in _world.Characters)
             {
                 var feet = character.PositionAt(alpha);
                 foreach (var write in _tag.Labels)
                 {
-                    var anchor = CharacterView.ToUnity(new PixelVector(feet.X + write.Offset.X, feet.Y + write.Offset.Y), _pixelsPerUnit);
+                    // The Top alignment's lift is in the world, before the matrix, as the original's DrawText did it.
+                    var anchor = CharacterView.ToUnity(new PixelVector(feet.X + write.Offset.X, feet.Y + write.Offset.Y - _tag.TopAlignLift), _pixelsPerUnit);
                     var viewport = _camera.WorldToViewportPoint(anchor);
                     var label = _labels[index++];
                     label.style.left = viewport.x * PixelPerfect.ReferenceWidth;
-                    label.style.top = (1f - viewport.y) * PixelPerfect.ReferenceHeight - _tag.TopAlignLift;
+                    label.style.top = (1f - viewport.y) * PixelPerfect.ReferenceHeight;
+                    label.style.rotate = rotate;
+                    label.style.scale = scale;
                 }
             }
         }

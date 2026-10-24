@@ -9,8 +9,9 @@ namespace Unity.ProjectVania.EditorTools
     /// <summary>
     /// Renders the composed game's camera to PNGs at the 800 x 600 reference, so a change can be seen working from the
     /// command line (<c>unity.ps1 capture</c>, which runs with graphics). It boots the game as the player would, lets the
-    /// characters fall and land, then captures the followed view, the map's top-left corner, and that corner with the
-    /// editor open. The UI Toolkit overlay (the names) is not in a camera render and so not in the pictures.
+    /// characters fall and land and the Loose camera settle on player one, then captures the followed view, the view
+    /// zoomed in and turned by the camera keys (the original's matrix: scale cubed, about the world origin), the map's
+    /// top-left corner, and that corner with the editor open. The UI Toolkit overlay (the names) is not in a camera render and so not in the pictures.
     /// </summary>
     public static class SceneCapture
     {
@@ -28,10 +29,7 @@ namespace Unity.ProjectVania.EditorTools
                     throw new InvalidOperationException("The settings did not load.");
                 }
 
-                for (var i = 0; i < 120; i++)
-                {
-                    host.World.Advance(1.0 / 60);
-                }
+                Steps(host, 300);
 
                 Present(host);
                 var camera = GameObject.Find("Camera").GetComponent<Camera>();
@@ -39,9 +37,21 @@ namespace Unity.ProjectVania.EditorTools
                 File.Delete(Path.Combine(output, "warmup.png"));
                 Save(camera, Path.Combine(output, "play.png"));
 
-                var follow = camera.GetComponent<FollowDrivenCharacter>();
+                // = held 20 steps (scale 1.2, magnified 1.728 about the world origin), then PageUp 20 (0.2 rad clockwise).
+                Nudge(host, CameraNudge.ZoomIn, 20);
+                Present(host);
+                Save(camera, Path.Combine(output, "zoomed.png"));
+                Nudge(host, CameraNudge.RotateRight, 20);
+                Present(host);
+                Save(camera, Path.Combine(output, "turned.png"));
+                Nudge(host, CameraNudge.RotateLeft, 20);
+                Nudge(host, CameraNudge.ZoomOut, 20);
+                Present(host);
+
+                var follow = camera.GetComponent<GameCamera>();
                 follow.enabled = false;
-                camera.transform.position = new Vector3(300f / 16f, -200f / 16f, camera.transform.position.z);
+                camera.GetComponent<PixelPerfectCamera>().Magnification = 1f;
+                camera.transform.SetPositionAndRotation(new Vector3(300f / 16f, -200f / 16f, camera.transform.position.z), Quaternion.identity);
                 Save(camera, Path.Combine(output, "corner.png"));
 
                 host.World.Submit(new ToggleMapEditor(PlayerId.One));
@@ -68,7 +78,28 @@ namespace Unity.ProjectVania.EditorTools
             }
 
             host.GetComponentInChildren<MapView>().Present();
-            host.GetComponentInChildren<FollowDrivenCharacter>()?.Follow();
+            var follow = host.GetComponentInChildren<GameCamera>();
+            if (follow != null && follow.enabled)
+            {
+                follow.Present();
+            }
+        }
+
+        static void Steps(GameHost host, int steps)
+        {
+            for (var i = 0; i < steps; i++)
+            {
+                host.World.Advance(1.0 / 60);
+            }
+        }
+
+        static void Nudge(GameHost host, CameraNudge nudge, int steps)
+        {
+            for (var i = 0; i < steps; i++)
+            {
+                host.World.Submit(new NudgeCamera(PlayerId.One, nudge));
+                host.World.Advance(1.0 / 60);
+            }
         }
 
         static void Save(Camera camera, string path)
@@ -80,7 +111,8 @@ namespace Unity.ProjectVania.EditorTools
             {
                 camera.rect = new Rect(0f, 0f, 1f, 1f);
                 camera.orthographic = true;
-                camera.orthographicSize = 600f / 2f / 16f; // 600 rows at 16 px per unit, as PixelPerfectCamera frames it
+                // 600 rows at 16 px per unit over the camera's zoom, as PixelPerfectCamera frames it
+                camera.orthographicSize = 600f / 2f / 16f / camera.GetComponent<PixelPerfectCamera>().Magnification;
                 camera.aspect = 800f / 600f;
                 camera.targetTexture = target;
                 camera.Render();

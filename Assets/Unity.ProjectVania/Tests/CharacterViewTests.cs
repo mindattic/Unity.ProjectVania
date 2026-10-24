@@ -131,26 +131,33 @@ namespace Unity.ProjectVania.Tests
                 Assert.That(red.style.top.value.value, Is.EqualTo(yellow.style.top.value.value - 100f).Within(1e-3f));
             }
 
-            // Player one's character is at the screen centre (the camera stand-in), so its yellow name is centred on x
-            // 400 and its top 64 px above the feet, at y 300.
-            Assert.That(tags.Labels[1].style.left.value.value, Is.EqualTo(400f).Within(0.01f));
-            Assert.That(tags.Labels[1].style.top.value.value, Is.EqualTo(300f - tag.TopAlignLift).Within(0.01f));
-            Assert.That(tags.Labels[3].style.left.value.value, Is.EqualTo(450f).Within(0.01f), "the twin 50 px to the right");
+            // Once the Loose camera has settled on player one's character, its yellow name is centred on x 400 with its
+            // top 64 px above the feet, and the twin's 50 px to the right.
+            Step(600);
+            _host.GetComponentInChildren<GameCamera>().Present();
+            tags.Place();
+            var feet = characters[0].Position;
+            var centre = _host.World.Camera(PlayerId.One).Centre;
+            Assert.That(tags.Labels[1].style.left.value.value, Is.EqualTo(400f + feet.X - centre.X).Within(0.05f));
+            Assert.That(tags.Labels[1].style.top.value.value, Is.EqualTo(300f + feet.Y - centre.Y - tag.TopAlignLift).Within(0.05f));
+            Assert.That(feet.X - centre.X, Is.EqualTo(0f).Within(0.5f));
+            Assert.That(tags.Labels[3].style.left.value.value - tags.Labels[1].style.left.value.value, Is.EqualTo(50f).Within(0.05f), "the twin 50 px to the right");
         }
 
         [Test]
         public void TheBracketsMoveTheCameraToTheOtherCharacter()
         {
-            var follow = _host.GetComponentInChildren<FollowDrivenCharacter>();
+            var follow = _host.GetComponentInChildren<GameCamera>();
             var ppu = _host.Settings.Grid.PixelsPerUnit;
-            follow.Follow();
-            Assert.That(follow.transform.position.x, Is.EqualTo(500f / ppu).Within(1e-4f));
+            Step(600);
+            follow.Present();
+            Assert.That(follow.transform.position.x, Is.EqualTo(500f / ppu).Within(0.5f / ppu));
 
             _host.World.Submit(new CycleCharacter(PlayerId.One, 1));
-            Step(1);
-            follow.Follow();
+            Step(600);
+            follow.Present();
             Assert.That(_host.World.DrivenIndex(PlayerId.One), Is.EqualTo(1));
-            Assert.That(follow.transform.position.x, Is.EqualTo(550f / ppu).Within(1e-4f));
+            Assert.That(follow.transform.position.x, Is.EqualTo(550f / ppu).Within(0.5f / ppu));
             Assert.That(follow.transform.position.z, Is.EqualTo(-10f));
         }
 

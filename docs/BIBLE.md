@@ -151,11 +151,11 @@ can be picked), and `SceneManager.DrawText` is kept exactly: the name written tw
 (Unity's built-in Arial, 13 px for 10 pt at XNA's 96 dpi), centred, red at (X - 1, Y - 100) and then yellow at
 (X, Y), each lifted by TextWriter's Top alignment (16 px measured height x 10 x 0.4 = 64 px), so the yellow name sits
 on the frame's top edge and the red one 100 px above it; characters.json's `nameTag` holds every figure. The names are
-UI Toolkit labels in the pixel-perfect panel, placed each frame where the game camera shows the character; they move
-with the camera but do not yet scale with its zoom or rotate with it (A9). `[` / `]` (and L1 / R1) give each player id
+UI Toolkit labels in the pixel-perfect panel, placed each frame where the game camera shows the character, scaled by
+its magnification and turned with it about the lifted text's top centre, as the original drew them through the same
+matrix (A9). `[` / `]` (and L1 / R1) give each player id
 its own driven index, wrapping both ways as `CyclePlayerLeft/Right`, with an event for the camera; defect 16 is fixed.
-Until the camera story (A9) builds the original's modes, a stand-in keeps the camera centred on player one's driven
-character so the switch is visible.
+The camera follows the newly driven character by its mode (A9, below).
 
 **The map on screen (U.VAN-US-A8).** `MapView` draws `Map.Draw` in its order under the characters (sorting orders
 -300, -200 + layer, -100; characters from 0), over the game camera's clear colour, CornflowerBlue (100, 149, 237).
@@ -173,7 +173,30 @@ A cell is drawn if it is Hard or Soft, or whatever its state while the game is i
 as the first tile at alpha 64). The texture is repainted only when `Map.Revision` changes or the game enters or leaves
 the editor; a whole repaint is a few tens of milliseconds, so A14's painting may want a one-cell repaint. Art is imported
 in code (`WorldArtImporter`), point-filtered and unscaled. `unity.ps1 capture` renders the camera to
-`Logs/Capture/*.png` (the followed view, the top-left corner, and the editor) to see it.
+`Logs/Capture/*.png` (the followed view, that view zoomed and then turned by the camera keys, the top-left corner,
+and the editor) to see it.
+
+**The camera (U.VAN-US-A9).** Core's `WorldCamera` is `CameraManager` line for line, one per player (the world
+gives each character's player one; `GameWorld.Camera(player)`), stepped after the characters in every state, so it
+keeps easing while the menu or console freezes the world. The original's negative position convention, its start at
+(1, 1) in LoosePlayer, its order (follow by mode, snap a velocity under 0.01 per axis, move, damp by 0.7, clamp the
+centre to the 1900 x 1200 map zeroing the clamped axis' velocity), `MoveToLocation`'s absolute-value gap times 0.02,
+LockPlayer's set-then-still-apply-velocity, the scroll keys adding 1 to the velocity, `=` / `-` and the wheel adding
+0.01 to the unclamped scale, Insert / PageUp turning by 0.01 rad, and C cycling Free, LockPlayer, LoosePlayer,
+LooseCursor are all camera.json's figures, replayed frame for frame in the Core tests against a literal copy of the
+original's arithmetic (including the snap's double-precision 0.01). M into the editor sets the camera Free and puts the
+editor cursor on the driven character; M out of it and R set LoosePlayer (R every player's camera, as it resets every
+character). LooseCursor follows `GameWorld.EditorCursor(player)`, (0, 0) until the editor first opens; the cursor's own
+movement in the editor, and the mouse joystick's scroll by 2, are the editor's (A14). An editor direction press scrolls
+the camera by 4 unless Shift (`MoveCell*`). The view is the original's matrix, `Scale(s^3) * RotationZ(r) *
+Translation(400 + X, 300 + Y)`: it magnifies and turns about the **world origin**, not the screen centre, so zooming or
+turning swings the followed character off the centre until the ease brings it back, and a scale at or below zero turns
+the view half round (scale cubed keeps its sign). This is kept exactly, as the story asks; it is the one camera
+behaviour that reads like an accident, and the owner may want it zoomed about the centre instead. Runtime's
+`GameCamera` frames the orthographic game camera on the world point the matrix puts at the screen centre, turned by the
+rotation (plus a half turn for a negative magnification) with its orthographic size over the magnification, which is the
+same picture; the EditMode tests check the Unity camera puts world points exactly where the original's matrix did.
+The camera is interpolated by the world's `Alpha`, as the characters are, zoom and turn included.
 
 **Effects.** The one effect used, `filter`, is a 1 % radial vignette (its `refractSampler` was never
 bound, so it never refracted); it becomes a URP full-screen pass over the world camera with its

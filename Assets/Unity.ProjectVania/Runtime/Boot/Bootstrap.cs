@@ -77,7 +77,7 @@ namespace Unity.ProjectVania
             camera.backgroundColor = MapView.ToColor(settings.Grid.Draw.ClearColour); // XNA CornflowerBlue, SceneManager.Draw's clear colour
             var pixelPerfect = cameraObject.AddComponent<PixelPerfectCamera>();
             pixelPerfect.PixelsPerUnit = settings.Grid.PixelsPerUnit;
-            cameraObject.AddComponent<FollowDrivenCharacter>().Initialize(host.World, host.Input.Player, settings.Grid.PixelsPerUnit);
+            cameraObject.AddComponent<GameCamera>().Initialize(host.World, host.Input.Player, settings.Grid.PixelsPerUnit);
 
             BuildMap(root.transform, host, settings);
             BuildCharacters(root.transform, host, settings);

@@ -27,7 +27,7 @@ namespace Unity.ProjectVania
             Settings = settings;
             // Both spawned characters are the default one, each with a fresh random name, as the original's two Morrises.
             var character = settings.Characters.Find(settings.Characters.DefaultCharacter);
-            World = new GameWorld(Map.FromSettings(settings.Grid), settings.Player, character, settings.Names, new System.Random());
+            World = new GameWorld(Map.FromSettings(settings.Grid), settings.Player, character, settings.Names, new System.Random(), settings.Camera);
             Device?.Dispose();
             Device = new InputSystemDevice(settings.Input.StickPressPoint);
             Input = new PlayerInput(PlayerId.One, settings.Input, Device);

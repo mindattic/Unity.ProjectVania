@@ -26,6 +26,25 @@ namespace Unity.ProjectVania
             }
         }
 
+        /// <summary>
+        /// How much the game camera magnifies the reference (the original's scale cubed, A9): the orthographic size is
+        /// divided by it, so 1 is the unzoomed pixel-perfect view. Positive; the caller turns a negative one into a half turn.
+        /// </summary>
+        public float Magnification
+        {
+            get => _magnification;
+            set
+            {
+                _magnification = value > 0f ? value : 1f;
+                if (_ppu > 0f)
+                {
+                    GetComponent<Camera>().orthographicSize = PixelPerfect.OrthographicSize(_ppu) / _magnification;
+                }
+            }
+        }
+
+        float _magnification = 1f;
+
         /// <summary>The viewport last applied.</summary>
         public PixelViewport Viewport { get; private set; }
 
@@ -51,7 +70,7 @@ namespace Unity.ProjectVania
             Viewport = view;
             var cam = GetComponent<Camera>();
             cam.orthographic = true;
-            cam.orthographicSize = PixelPerfect.OrthographicSize(_ppu);
+            cam.orthographicSize = PixelPerfect.OrthographicSize(_ppu) / _magnification;
             // The viewport is always the reference's 4:3, even when a tiny window rounds it to a pixel or two.
             cam.aspect = PixelPerfect.ReferenceWidth / (float)PixelPerfect.ReferenceHeight;
             cam.rect = new Rect(view.X / (float)screenWidth, view.Y / (float)screenHeight, view.Width / (float)screenWidth, view.Height / (float)screenHeight);
