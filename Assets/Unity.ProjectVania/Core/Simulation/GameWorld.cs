@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using Unity.ProjectVania.Core.Characters;
 using Unity.ProjectVania.Core.Commands;
+using Unity.ProjectVania.Core.Settings;
 using Unity.ProjectVania.Core.World;
 
 namespace Unity.ProjectVania.Core.Simulation
@@ -28,14 +30,42 @@ namespace Unity.ProjectVania.Core.Simulation
         {
         }
 
-        /// <summary>A world on <paramref name="map"/> (the bridge level, <see cref="Map.FromSettings"/>).</summary>
+        /// <summary>A world on <paramref name="map"/> (the bridge level, <see cref="Map.FromSettings"/>) with no characters.</summary>
         public GameWorld(Map map)
         {
             Map = map ?? throw new ArgumentNullException(nameof(map));
         }
 
+        /// <summary>
+        /// A world on <paramref name="map"/> with one character at each of player.json's spawn positions
+        /// (<c>SceneManager.LoadContent</c>: two, at (500, 100) and (550, 100)), each <paramref name="unitSize"/> cells.
+        /// </summary>
+        public GameWorld(Map map, PlayerData player, Pair unitSize)
+            : this(map)
+        {
+            _player = player ?? throw new ArgumentNullException(nameof(player));
+            foreach (var spawn in player.SpawnPositions)
+            {
+                _characters.Add(new PlayerCharacter(player, unitSize, new PixelVector(spawn.X, spawn.Y)));
+            }
+        }
+
+        readonly List<PlayerCharacter> _characters = new List<PlayerCharacter>();
+        readonly PlayerData _player;
+        ActionKind[] _actionsBefore = Array.Empty<ActionKind>();
+
         /// <summary>The collision grid (RECONSTRUCTION 5), or null for a world built without one.</summary>
         public Map Map { get; }
+
+        /// <summary>Every character, all simulated each Play step whether driven or not (RECONSTRUCTION 4).</summary>
+        public IReadOnlyList<PlayerCharacter> Characters => _characters;
+
+        /// <summary>
+        /// The character <paramref name="player"/>'s commands drive: player n drives character n (the original's
+        /// <c>Scene.CurrentPlayer</c>, PlayerIndex 0), or null if there is none.
+        /// </summary>
+        public PlayerCharacter Driven(PlayerId player) =>
+            player.IsValid && player.Value < _characters.Count ? _characters[player.Value] : null;
 
         /// <summary>Steps taken so far.</summary>
         public long Tick { get; private set; }
@@ -82,10 +112,33 @@ namespace Unity.ProjectVania.Core.Simulation
             return steps;
         }
 
-        /// <summary>One 1/60 s step: apply every queued command in order, then advance the tick.</summary>
+        /// <summary>
+        /// One 1/60 s step in the original's frame order (RECONSTRUCTION 1): apply every queued command in order (the
+        /// InputManager), then, only in Play, update every character (the SceneManager), then advance the tick.
+        /// </summary>
         void Step()
         {
+            if (_actionsBefore.Length != _characters.Count) _actionsBefore = new ActionKind[_characters.Count];
+            for (int i = 0; i < _characters.Count; i++) _actionsBefore[i] = _characters[i].Action;
+
             while (_pending.Count > 0) Apply(_pending.Dequeue());
+
+            if (State == GameState.Play)
+            {
+                foreach (var character in _characters)
+                {
+                    character.Step(Map, FixedStepper.OriginalElapsedSeconds);
+                }
+            }
+
+            for (int i = 0; i < _characters.Count; i++)
+            {
+                if (_characters[i].Action != _actionsBefore[i])
+                {
+                    _events.Add(new CharacterActionChanged(Tick, i, _actionsBefore[i], _characters[i].Action));
+                }
+            }
+
             Tick++;
         }
 
@@ -107,9 +160,32 @@ namespace Unity.ProjectVania.Core.Simulation
                     ChangeState(toggle.Player, State == GameState.MapEditor ? GameState.Play : GameState.MapEditor);
                     break;
 
-                // Reset: always back to Play (the camera and characters reset with their stories, A6 and A9).
+                // Reset: always back to Play and every character to the reset position, Falling (RECONSTRUCTION 4.9;
+                // the camera resets with its story, A9).
                 case ResetGame reset:
                     ChangeState(reset.Player, GameState.Play);
+                    foreach (var character in _characters)
+                    {
+                        character.Reset(new PixelVector(_player.ResetPosition.X, _player.ResetPosition.Y));
+                    }
+
+                    break;
+
+                // The driven character's controls (Command_Move, Command_Stand, Command_Kneel, Command_Jump).
+                case MoveCharacter move:
+                    Driven(move.Player)?.Move(move.Direction);
+                    break;
+
+                case StandCharacter stand:
+                    Driven(stand.Player)?.StopMoving();
+                    break;
+
+                case KneelCharacter kneel:
+                    Driven(kneel.Player)?.Kneel();
+                    break;
+
+                case JumpCharacter jump:
+                    Driven(jump.Player)?.Jump();
                     break;
 
                 // Command_ToggleConsole flips the console down or up. The original changed the state only when the

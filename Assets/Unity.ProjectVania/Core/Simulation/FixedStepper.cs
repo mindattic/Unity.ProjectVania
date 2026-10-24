@@ -16,6 +16,19 @@ namespace Unity.ProjectVania.Core.Simulation
         public const long UnitsPerSecond = UnitsPerStep * StepsPerSecond;
 
         /// <summary>
+        /// XNA's default <c>Game.TargetElapsedTime</c>, <c>TimeSpan.FromTicks(166667)</c>: with a fixed timestep every
+        /// <c>ElapsedGameTime</c> the original's per-frame code read was exactly this, not 1/60.
+        /// </summary>
+        public const long XnaTargetElapsedTicks = 166667;
+
+        /// <summary>
+        /// The <c>elapsed</c> the original's <c>Player.Update</c> computed each frame:
+        /// <c>(float)gameTime.ElapsedGameTime.TotalSeconds</c> of <see cref="XnaTargetElapsedTicks"/> (0.0166667).
+        /// The character's per-step arithmetic uses it so jump, wall and timer frame counts match the original.
+        /// </summary>
+        public static readonly float OriginalElapsedSeconds = (float)(XnaTargetElapsedTicks * (1.0 / 10_000_000));
+
+        /// <summary>
         /// Longest frame the clock honours (a stall is dropped rather than replayed as a burst of
         /// steps). XNA capped a frame at half a second; the same cap applies here.
         /// </summary>

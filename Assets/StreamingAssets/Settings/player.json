@@ -18,6 +18,7 @@
   "slideLaunchAcceleration": 14000,
   "slideFriction": 0.7,
   "slideUnitSize": [3, 1],
+  "ceilingHeightCells": 3,
   "spawn": {
     "_about": "SceneManager.LoadContent creates two players; Reset (R) puts every player back at the reset position (4.9: both go to 500,100 in the original).",
     "positions": [[500, 100], [550, 100]],

@@ -115,6 +115,20 @@ every state, the menu and console included; the console types a key with no char
 block moving). The original's empty stubs (Q, W, J, K, L, 1-5, pad X/Y/B, the jump release) issue nothing. Until the
 console's slide is built (A11), opening it enters the Console state at once rather than when the slide ends.
 
+**Character physics (U.VAN-US-A6).** Core's `PlayerCharacter` is `Player.cs` frame for frame: commands
+(`Initiate_Move`, `Cancel_Move`, `Initiate_Kneel`, `Command_Jump`) are applied before the step's update, then
+collisions and the terrain machine, drag, bounds, the move, and the action, exactly in the original's order. The
+per-frame arithmetic is single precision with the frame XNA actually reported, `TimeSpan.FromTicks(166667)` =
+0.0166667 s (`FixedStepper.OriginalElapsedSeconds`), not 1/60: so the jump curve runs 35 frames and falls on the 36th,
+and the idle-wall timer drops on the 61st frame. Every figure is player.json's, including the ceiling test's 3 cells.
+Both characters simulate every Play step; player n's commands drive character n until `[` / `]` arrive with A7.
+Defect 1's fix leaves `isJumping` clear on a kneeling jump, and with the ordinary ground checks back the idle test stands
+the character the same frame, so the kneel-jump "slide" is a one-frame nudge of about 2 px (the original's was barely
+3 px before it trapped him); A18's play-through should say whether it wants a longer slide. Defect 2 restores the 1 x 3
+size the moment the action leaves Sliding (including on Reset). Defects 3, 6 and 7 are as the original until
+U.VAN-T23 and U.VAN-T24 build the owner's kneel-release and push-off decisions (their player.json slots are not yet
+read).
+
 **Effects.** The one effect used, `filter`, is a 1 % radial vignette (its `refractSampler` was never
 bound, so it never refracted); it becomes a URP full-screen pass over the world camera with its
 parameters as data. This is a **deliberate deviation** from RECONSTRUCTION 6.1: the original darkened by

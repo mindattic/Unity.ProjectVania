@@ -68,6 +68,10 @@ namespace Unity.ProjectVania.Core.Settings
         public float SlideLaunchAcceleration { get; private set; }
         public float SlideFriction { get; private set; }
         public Pair SlideUnitSize { get; private set; }
+
+        /// <summary>How many cells above the feet the ceiling test looks (<c>CheckCeilingCollision(ref position, 3)</c>).</summary>
+        public int CeilingHeightCells { get; private set; }
+
         public IReadOnlyList<Pair> SpawnPositions { get; private set; }
         public Pair ResetPosition { get; private set; }
         public Abilities Ability { get; private set; }
@@ -106,6 +110,7 @@ namespace Unity.ProjectVania.Core.Settings
                 SlideLaunchAcceleration = r.Positive("slideLaunchAcceleration"),
                 SlideFriction = r.Number("slideFriction", 0.0001f, 1f),
                 SlideUnitSize = r.Pair("slideUnitSize", 1f, 100f),
+                CeilingHeightCells = r.Integer("ceilingHeightCells", 1, 100),
             };
 
             var spawn = r.Section("spawn", s => new

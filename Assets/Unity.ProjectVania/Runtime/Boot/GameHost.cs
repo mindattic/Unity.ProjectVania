@@ -25,7 +25,8 @@ namespace Unity.ProjectVania
         public void Initialize(GameSettings settings)
         {
             Settings = settings;
-            World = new GameWorld(Map.FromSettings(settings.Grid));
+            var character = settings.Characters.Find(settings.Characters.DefaultCharacter);
+            World = new GameWorld(Map.FromSettings(settings.Grid), settings.Player, character.UnitSize);
             Device?.Dispose();
             Device = new InputSystemDevice(settings.Input.StickPressPoint);
             Input = new PlayerInput(PlayerId.One, settings.Input, Device);
