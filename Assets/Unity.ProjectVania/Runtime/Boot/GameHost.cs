@@ -40,7 +40,7 @@ namespace Unity.ProjectVania
             // Both spawned characters are the default one, each with a fresh random name, as the original's two Morrises.
             var character = settings.Characters.Find(settings.Characters.DefaultCharacter);
             World = new GameWorld(Map.FromSettings(settings.Grid), settings.Player, character, settings.Names, new System.Random(), settings.Camera, settings.Menu,
-                settings.Console, settings.Audio, settings.Hud, settings.Animations);
+                settings.Console, settings.Audio, settings.Hud, settings.Animations, settings.Editor);
             Device?.Dispose();
             Device = new InputSystemDevice(settings.Input.StickPressPoint);
             Input = new PlayerInput(PlayerId.One, settings.Input, Device);
@@ -77,6 +77,33 @@ namespace Unity.ProjectVania
 
             World.Advance(deltaSeconds, Input);
             Present(World.Events);
+            HoldTheMouse();
+        }
+
+        /// <summary>
+        /// The editor's World mode reads the mouse as a joystick and warped it back to the screen centre every frame
+        /// (<c>Mouse.SetPosition</c>, RECONSTRUCTION 12.1): the device reads its travel, and while playing the OS cursor is
+        /// locked there. The original never showed the OS cursor (<c>IsMouseVisible = false</c>); it drew its own hands.
+        /// </summary>
+        void HoldTheMouse()
+        {
+            var editor = World.Editor(Input.Player);
+            Device.Joystick = World.State == GameState.MapEditor && editor != null && editor.Mode == EditorCursorMode.World;
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
+            var lockState = Device.Joystick ? CursorLockMode.Locked : CursorLockMode.None;
+            if (Cursor.lockState != lockState)
+            {
+                Cursor.lockState = lockState;
+            }
+
+            if (Cursor.visible)
+            {
+                Cursor.visible = false;
+            }
         }
 
         /// <summary>

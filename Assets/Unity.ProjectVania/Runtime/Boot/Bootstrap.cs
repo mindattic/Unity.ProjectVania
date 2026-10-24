@@ -11,7 +11,7 @@ namespace Unity.ProjectVania
     /// The code-built bootstrap (RECONSTRUCTION 0): the project's one scene is empty, and this composes everything
     /// at start-up instead of Inspector wiring. It points the shared profiles at the player's data folder, loads the
     /// settings registry (stopping with every error listed if a file is bad), then builds the pixel-perfect camera,
-    /// the game host, the map, a sprite per character, and the UI Toolkit root (with the characters' names, the HUD, the main menu, the console and the HUD's text) at the 800x600 reference, and the
+    /// the game host, the map with the editor's world cursor, a sprite per character, and the UI Toolkit root (with the characters' names, the HUD, the main menu, the editor's palette and cursors, the console and the HUD's text) at the 800x600 reference, and the
     /// cue player the menu's and the console's sounds play through.
     /// </summary>
     public static class Bootstrap
@@ -90,6 +90,8 @@ namespace Unity.ProjectVania
             ui.gameObject.AddComponent<HudView>().Initialize(host.World, ui.rootVisualElement);
             // ... then the menu, which covers the world and its names (RECONSTRUCTION 9) ...
             ui.gameObject.AddComponent<MainMenuView>().Initialize(host.World, settings.Menu, ui.rootVisualElement);
+            // ... the state's own GUI: the hand over the menu, or the editor's palette and Screen cursor (RECONSTRUCTION 8, 12) ...
+            ui.gameObject.AddComponent<EditorGuiView>().Initialize(host.World, host.Input.Player, settings.Editor, settings.Grid.TilesetAsset, ui.rootVisualElement);
             // ... the console after the menu, as GuiManager.Draw drew it (RECONSTRUCTION 9, 10.1) ...
             ui.gameObject.AddComponent<ConsoleView>().Initialize(host.World, ui.rootVisualElement);
             // ... and last the debug readout and the message stack.
@@ -97,12 +99,17 @@ namespace Unity.ProjectVania
             return host;
         }
 
-        /// <summary>The map under the characters: outline, layers, then cells (RECONSTRUCTION 5, 6).</summary>
+        /// <summary>The map under the characters: outline, layers, cells, then the editor's cursor (RECONSTRUCTION 5, 6).</summary>
         static void BuildMap(Transform parent, GameHost host, GameSettings settings)
         {
             var map = new GameObject("Map");
             map.transform.SetParent(parent, false);
             map.AddComponent<MapView>().Initialize(host.World, settings.Grid);
+
+            // MapEditor.DrawToWorld: the World cursor, after the cells and before the characters.
+            var cursor = new GameObject("EditorCursor");
+            cursor.transform.SetParent(map.transform, false);
+            cursor.AddComponent<EditorCursorView>().Initialize(host.World, host.Input.Player, settings.Editor, settings.Grid.PixelsPerUnit);
         }
 
         /// <summary>One sprite per Core character, drawn from its sheet's strips (RECONSTRUCTION 4.8).</summary>

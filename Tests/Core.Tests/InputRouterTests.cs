@@ -41,6 +41,7 @@ namespace Unity.ProjectVania.Core.Tests
             public Rig Hold(MouseButton button) { _held.Set(button); return this; }
             public Rig Release(MouseButton button) { _held.Set(button, false); return this; }
             public Rig Wheel(int notch) { _held.Wheel = notch; return this; }
+            public Rig Mouse(float x, float y, bool active = true) { _held.SetMouse(x, y); _held.WindowActive = active; return this; }
             public Rig Connect(bool connected = true) { _held.PadConnected = connected; return this; }
 
             /// <summary>One step; returns the commands its input issued.</summary>
@@ -430,6 +431,27 @@ namespace Unity.ProjectVania.Core.Tests
             var step = Of<StepEditor>(commands).Single();
             Assert.That((step.Dx, step.Dy, step.SelectTile, step.MoveCell), Is.EqualTo((-1, 0, true, true)));
             Assert.That(Of<StepEditor>(rig.Step()), Is.Empty, "on press only");
+        }
+
+        [Test]
+        public void TheEditorReadsTheMouseEveryStepWithItsButtons()
+        {
+            var rig = new Rig(GameState.MapEditor);
+            Assert.That(Of<PointEditor>(rig.Step()), Is.Empty, "a device that reports no mouse points nothing");
+
+            rig.Mouse(410f, 290f, active: false).Hold(MouseButton.Left);
+            var point = Of<PointEditor>(rig.Step()).Single();
+            Assert.That((point.X, point.Y, point.Left, point.Right, point.WindowActive), Is.EqualTo((410f, 290f, true, false, false)));
+            point = Of<PointEditor>(rig.Step()).Single();
+            Assert.That(point.Left, Is.True, "held, not pressed");
+
+            rig.Release(MouseButton.Left).Hold(MouseButton.Right).Mouse(400f, 300f);
+            point = Of<PointEditor>(rig.Step()).Single();
+            Assert.That((point.Left, point.Right, point.WindowActive), Is.EqualTo((false, true, true)));
+
+            var play = new Rig();
+            play.Mouse(410f, 290f).Hold(MouseButton.Left);
+            Assert.That(Of<PointEditor>(play.Step()), Is.Empty, "only the editor reads it");
         }
 
         [Test]

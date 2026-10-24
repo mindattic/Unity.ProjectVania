@@ -163,14 +163,17 @@ namespace Unity.ProjectVania.Tests
                 for (var x = 0; x < map.Columns; x++)
                 {
                     var cell = map[x, y];
-                    var expected = Rgba.Modulate(tileset[cell.Tile.X + 3, cell.Tile.Y + 4], new Rgba(255, 255, 255, cell.Alpha));
+                    var expected = Rgba.Modulate(tileset[cell.Tile.X + 3, cell.Tile.Y + 4], cell.Tint);
                     Assert.That(_view.CellCanvas[x * 16 + 3, y * 16 + 4], Is.EqualTo(expected),
                         $"[{x}, {y}] ({cell.State}) is drawn in the editor; an empty one is the first tile at alpha 64");
                 }
             }
 
-            Assert.That(map[0, 0].Alpha, Is.EqualTo(64));
-            Assert.That(map[0, 0].Tile.X, Is.EqualTo(0));
+            Assert.That(map[1, 0].Alpha, Is.EqualTo(64));
+            Assert.That(map[1, 0].Tile.X, Is.EqualTo(0));
+            var under = _host.World.Editor(PlayerId.One).SelectedCell;
+            Assert.That((under.X, under.Y), Is.EqualTo((0, 0)), "the Free camera's centre is clamped to the map's corner");
+            Assert.That(map[0, 0].Tint, Is.EqualTo(new Rgba(255, 255, 0, 255)), "the cell under the editor's cursor is tinted yellow (A14)");
 
             _host.World.Submit(new ToggleMapEditor(PlayerId.One));
             _host.World.Advance(1.0 / 60);

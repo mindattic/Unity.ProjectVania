@@ -167,6 +167,31 @@ namespace Unity.ProjectVania.Core.Commands
     }
 
     /// <summary>
+    /// Where the mouse is this editor step and which of its buttons are held (<c>Mouse.GetState()</c>, read by the
+    /// editor's update after the camera has moved): on the 800 x 600 reference screen, pixels, y down; and whether the
+    /// window has the focus, without which the editor does not warp the mouse back to the screen centre.
+    /// </summary>
+    public readonly struct PointEditor : ICommand
+    {
+        public PlayerId Player { get; }
+        public float X { get; }
+        public float Y { get; }
+        public bool Left { get; }
+        public bool Right { get; }
+        public bool WindowActive { get; }
+
+        public PointEditor(PlayerId player, float x, float y, bool left, bool right, bool windowActive = true)
+        {
+            Player = player;
+            X = x;
+            Y = y;
+            Left = left;
+            Right = right;
+            WindowActive = windowActive;
+        }
+    }
+
+    /// <summary>
     /// An editor direction press: step the palette's selected tile (unless Ctrl) and move the cursor a cell, scrolling
     /// the camera (unless Shift). Exactly one of <see cref="Dx"/>, <see cref="Dy"/> is non-zero.
     /// </summary>

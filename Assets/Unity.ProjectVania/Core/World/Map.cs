@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Unity.ProjectVania.Core.Settings;
 
 namespace Unity.ProjectVania.Core.World
@@ -89,16 +90,47 @@ namespace Unity.ProjectVania.Core.World
             }
         }
 
+        /// <summary>The most changes <see cref="ChangesSince"/> can list; a view further behind repaints everything.</summary>
+        public const int LoggedChanges = 4096;
+
+        // The cells changed since revision _logBase, in order: change i made revision _logBase + i + 1.
+        readonly List<CellIndex> _changes = new List<CellIndex>();
+        int _logBase;
+
         /// <summary>Replaces one cell. Core-only: the grid changes through commands (the editor, A14), never from presentation.</summary>
         internal void Set(int x, int y, GridCell cell)
         {
             if (!CellInRange(x, y)) throw new ArgumentOutOfRangeException(nameof(x), $"Cell [{x}, {y}] is outside the {Columns} x {Rows} grid.");
             _cells[x, y] = cell;
+            if (_changes.Count == LoggedChanges)
+            {
+                _changes.Clear();
+                _logBase = Revision;
+            }
+
+            _changes.Add(new CellIndex(x, y));
             Revision++;
         }
 
         /// <summary>Counts every change to a cell, so a view can redraw the grid only when it has changed.</summary>
         public int Revision { get; private set; }
+
+        /// <summary>
+        /// Adds to <paramref name="changed"/> every cell changed after <paramref name="revision"/>, oldest first (a cell
+        /// changed twice is listed twice), so a view can repaint only those; false, adding nothing, when the log no longer
+        /// reaches back that far (the view then repaints everything).
+        /// </summary>
+        public bool ChangesSince(int revision, List<CellIndex> changed)
+        {
+            if (changed == null) throw new ArgumentNullException(nameof(changed));
+            if (revision < _logBase || revision > Revision) return false;
+            for (int i = revision - _logBase; i < _changes.Count; i++)
+            {
+                changed.Add(_changes[i]);
+            }
+
+            return true;
+        }
 
         /// <summary><c>CellInRange</c>: whether an index is on the grid.</summary>
         public bool CellInRange(int x, int y) => x >= 0 && y >= 0 && x < Columns && y < Rows;

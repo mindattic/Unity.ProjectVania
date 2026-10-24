@@ -13,7 +13,7 @@ namespace Unity.ProjectVania
     /// (the painted mountain-farmhouse backdrop, area_1, 1920 x 1200 at (0, 0)), then the grid's cells, all under the
     /// characters. The cells are painted by Core (<see cref="MapDrawing.PaintCells"/>) from the tileset's pixels into one
     /// point-filtered texture, repainted only when the map changes or the game enters or leaves the editor (where every
-    /// cell shows). It only reads the world. Art is <c>Resources/World/&lt;asset&gt;.png</c>, named as the original's
+    /// cell shows); the editor's few changes a step repaint and upload only their cells. It only reads the world. Art is <c>Resources/World/&lt;asset&gt;.png</c>, named as the original's
     /// TextureManager keys.
     /// </summary>
     [DefaultExecutionOrder(40)]
@@ -47,8 +47,17 @@ namespace Unity.ProjectVania
         /// <summary>The cell texture's pixels as Core painted them (row 0 at the top), or null without a tileset.</summary>
         public PixelImage CellCanvas => _canvas;
 
-        /// <summary>How many times the cells have been painted (once at start, then once per change).</summary>
+        /// <summary>How many times every cell has been painted (once at start, then on entering or leaving the editor).</summary>
         public int Repaints { get; private set; }
+
+        /// <summary>How many single cells have been repainted for the editor's changes.</summary>
+        public int CellRepaints { get; private set; }
+
+        /// <summary>More changed cells than this at once are cheaper painted whole.</summary>
+        public const int MostCellRepaints = 256;
+
+        readonly System.Collections.Generic.List<CellIndex> _changed = new System.Collections.Generic.List<CellIndex>();
+        Color32[] _cellBlock;
 
         /// <summary>The Resources path of one texture.</summary>
         public static string PathOf(string asset) => $"{ResourceFolder}/{asset}";
@@ -93,11 +102,63 @@ namespace Unity.ProjectVania
                 return;
             }
 
+            if (_paintedState.HasValue && drawsAll == paintedAll && RepaintChangedCells(state))
+            {
+                _paintedRevision = _world.Map.Revision;
+                return;
+            }
+
             MapDrawing.PaintCells(_world.Map, state, _tileset, _canvas);
             Upload(_canvas, _cellTexture, _upload);
             _paintedRevision = _world.Map.Revision;
             _paintedState = state;
             Repaints++;
+        }
+
+        /// <summary>Repaints and uploads only the cells changed since the last paint; false if they need the whole repaint.</summary>
+        bool RepaintChangedCells(GameState state)
+        {
+            var map = _world.Map;
+            _changed.Clear();
+            if (!map.ChangesSince(_paintedRevision, _changed) || _changed.Count > MostCellRepaints)
+            {
+                return false;
+            }
+
+            foreach (var cell in _changed)
+            {
+                if (!MapDrawing.RepaintCell(map, cell.X, cell.Y, state, _tileset, _canvas))
+                {
+                    return false;
+                }
+            }
+
+            var size = map.CellSize;
+            if (_cellBlock == null || _cellBlock.Length != size * size)
+            {
+                _cellBlock = new Color32[size * size];
+            }
+
+            foreach (var cell in _changed)
+            {
+                var left = cell.X * size;
+                var top = cell.Y * size;
+                for (var v = 0; v < size; v++)
+                {
+                    for (var u = 0; u < size; u++)
+                    {
+                        var c = _canvas[left + u, top + v];
+                        // Unity's rows run bottom-up: the block's row 0 is the cell's bottom row.
+                        _cellBlock[(size - 1 - v) * size + u] = new Color32(c.R, c.G, c.B, c.A);
+                    }
+                }
+
+                _cellTexture.SetPixels32(left, _canvas.Height - top - size, size, size, _cellBlock);
+                CellRepaints++;
+            }
+
+            _cellTexture.Apply(false);
+            return true;
         }
 
         void BuildOutline(MapDrawData draw, int width, int height)

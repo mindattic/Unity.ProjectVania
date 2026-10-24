@@ -32,7 +32,7 @@ namespace Unity.ProjectVania.Core.Tests
         {
             s ??= Shipped();
             return new GameWorld(Map.FromSettings(s.Grid), s.Player, s.Characters.Find(s.Characters.DefaultCharacter), s.Names, new Random(seed), s.Camera, s.Menu,
-                s.Console, s.Audio, s.Hud);
+                s.Console, s.Audio, s.Hud, s.Animations, s.Editor);
         }
 
         static void Steps(GameWorld world, int count)
@@ -356,10 +356,21 @@ namespace Unity.ProjectVania.Core.Tests
             Assert.That(HudReadout.Camera(world, P1, data), Is.EqualTo("Mode: LoosePlayer\n1, 1"));
             Assert.That(HudReadout.Cell(world, P1, data), Is.EqualTo("Coords:0, 0"), "the editor's selected cell before it ever opened");
 
+            // Once the camera has eased onto the character, the editor opens: its first step puts the cursor on the view's
+            // centre plus half the hand (6, 9), and the readout writes the cell under it.
+            Steps(world, 180);
             world.Submit(new ToggleMapEditor(P1));
             Steps(world, 1);
-            Assert.That(HudReadout.Cell(world, P1, data), Is.EqualTo("Coords:31, 6"), "the editor's cursor starts on the driven character");
+            var camera = world.Camera(P1).Position;
+            var under = world.Map.GetGridCoordinates(new PixelVector(-camera.X + 6, -camera.Y + 9));
+            Assert.That(under.X, Is.GreaterThan(20), "the view is on the character, between the walls");
+            Assert.That(HudReadout.Cell(world, P1, data), Is.EqualTo("Coords:" + under.X + ", " + under.Y), "the cell under the editor's cursor");
             Assert.That(HudReadout.Camera(world, P1, data), Does.StartWith("Mode: Free\n"));
+
+            world.Submit(new SetEditorCursor(P1, EditorCursorMode.Screen));
+            world.Submit(new PointEditor(P1, 100f, 100f, false, false));
+            Steps(world, 1);
+            Assert.That(HudReadout.Cell(world, P1, data), Is.EqualTo("Coords:" + under.X + ", " + under.Y), "Screen mode leaves the selected cell as it was");
         }
 
         [TestCase(500f, "500")]

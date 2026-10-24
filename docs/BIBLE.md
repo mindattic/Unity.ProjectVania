@@ -87,7 +87,7 @@ standard.
 | 6 | Wall jump climbs before pushing away | **Fix** (owner decision 2026-10-23, built by U.VAN-T24): an active wall jump now kicks off a full-height wall every frame contact lasts, at `player.json`'s `wallJump.pushSpeed` (200, the run cap), instead of pinning the horizontal speed at 0 until contact happened to break on its own, which against a wall this tall it never did |
 | 7 | Terminal-speed landing while moving leaves one frame of Falling on OnGround | **Keep**: A6's frame-replay tests assert it |
 | 8 | Last name never chosen; `Other` gender returns null | **Fix**: every name is selectable; `Other` is not exposed |
-| 9, 10 | `Tile(x, y)` mix-up draws the sheet 180 times; palette Y clamp off by one; right step unbounded; no bounds check on the edited cell | **Fix**: the palette draws each tile once at its place; clamp to the sheet in both axes; no painting or highlighting outside the grid |
+| 9, 10 | `Tile(x, y)` mix-up draws the sheet 180 times; palette Y clamp off by one; right step unbounded; no bounds check on the edited cell | **Fix** (built by U.VAN-T17): the palette draws each tile once at its place (so its tiles show at `Tile.Color`'s half alpha, where the 180 stacked draws had looked opaque); the Screen pick and the arrow steps stay on the sheet in both axes; no painting, highlighting or unhighlighting outside the grid |
 | 11 | Short console commands crash | **Fix**: too few words prints a usage line; nothing throws |
 | 11b | `console clear` spares `History[0]` | **Keep** (it is the echoed command line) |
 | 12 | Sun cycle and ActionCross never run | **Keep inert** as data (U.VAN-US-A16) |
@@ -187,7 +187,8 @@ cell's position, white-tinted at its alpha, composited straight-alpha in the ori
 into one point-filtered 1888 x 1200 texture, so drawing it over the backdrop is the same as drawing every cell over it.
 A cell is drawn if it is Hard or Soft, or whatever its state while the game is in the map editor (empty cells then show
 as the first tile at alpha 64). The texture is repainted only when `Map.Revision` changes or the game enters or leaves
-the editor; a whole repaint is a few tens of milliseconds, so A14's painting may want a one-cell repaint. Art is imported
+the editor; a whole repaint is a few tens of milliseconds, so the editor's changes (A14) repaint and upload only their
+cells (`Map.ChangesSince`, `MapDrawing.RepaintCell`), the same picture as a whole repaint. Art is imported
 in code (`WorldArtImporter`), point-filtered and unscaled. `unity.ps1 capture` renders the camera to
 `Logs/Capture/*.png` (the followed view, that view zoomed and then turned by the camera keys, the top-left corner,
 and the editor) to see it.
@@ -233,8 +234,8 @@ and the description at (10, H - 20) in white. Lucida Console is taken from the i
 Windows and is not ours to redistribute), with Unity's built-in font standing in where it is missing. Runtime's
 `CuePlayer` plays a cue from audio.json's table, its wave at `Resources/Audio/<wave>.wav` imported as the original's
 PCM, a new one-shot each time at the cue's XACT volume (hundredths of a dB) times the table's volume, nothing while
-muted; the rest of the table, and mute, pause and the songs, are U.VAN-US-A13's (**Audio**, above). Left for later stories: the GUI's hand cursor, which the original drew over the menu at the mouse
-(`Cursor` in Screen mode, RECONSTRUCTION 8), comes with the editor's cursors (A14); the console's slide and its cues
+muted; the rest of the table, and mute, pause and the songs, are U.VAN-US-A13's (**Audio**, above). The GUI's hand cursor, which the original drew over the menu at the mouse
+(`Cursor` in Screen mode, RECONSTRUCTION 8), is drawn with the editor's cursors (A14, below); the console's slide and its cues
 are A11's (below). `unity.ps1 capture` now also writes `menu.png` and `menu-video.png` (and `play-ui.png`), the camera's
 picture with the UI Toolkit panel drawn over it.
 
@@ -271,6 +272,43 @@ stretched) over (0, Y, 800, height) at 0.75, then in the Console state only, in 
 yellow `>`, the line and the 100 history lines at the original's screen positions (not the panel's), in the console's two
 colours. The two `machine_1` waves and `console1` / `red` are imported. `unity.ps1 capture` writes `console-sliding.png`,
 `console.png` and `console-full-red.png`.
+
+**The map editor (U.VAN-US-A14).** Core's `MapEditor` (namespace `Editing`) is `MapEditor\MapEditor.cs`, `Cursor.cs` and
+`TilePalette.cs`, one per player (the world's `Editor(player)`), every figure and colour editor.json's (the hand's asset
+and 13 x 18 size, the dead zone 2, the button colours, the paint and highlight colours, the 16 px tile, the drag box's 0.4
+and 0.8 of the frame, the palette's background, offset, tileset size and half-alpha tiles); the mouse scroll 2 and cell
+scroll 4 are camera.json's `editorScrollSteps`, a cleared cell is grid.json's fresh cell, and the settings check a tile is
+exactly a cell. M or the middle button opens it as before (A4, A9: camera Free, cursor on the driven character). The world
+steps it last, after the HUD and only in the MapEditor state, as the original's component ran last. The router sends the
+mouse every editor step (`PointEditor`: the reference-screen position, left and right held, and whether the window has the
+focus) after Space's `SetEditorCursor`. **World mode** (Space not held): the mouse beyond half the dead zone either side of
+the screen centre (x > 401, x < 399, and so on) adds the scroll to the camera's velocity, felt next step; the cursor is
+`-Camera.Position` plus half the hand in whole pixels (6, 9), so it ignores zoom and turn as the original's did; then, left
+held, every character whose 25 x 51 box (`Player.Bounds`, standing on the feet) touches the hand's 13 x 18 box (XNA's
+`Contains` or `Intersects`) is put at the cursor, keeping its velocity and action; then the selected cell is the cell under
+the cursor: left paints it Hard, opaque white, with the selected tile's 16 px square; right clears it to the fresh cell;
+neither tints it yellow (the colour only); and a cell just left that is still yellow goes back to the fresh tint if empty,
+else opaque white. Then the mouse is warped back to the centre if the window has the focus. Because left both drags and
+paints, a dragged character stands on the cell painted under its feet, as in the original. **Screen mode** (Space held): the
+cursor is put at (0, 0) (`PreviousGuiPosition`, never set) and then at the mouse kept so the hand stays on screen, and the
+palette's tile is `round((cursor - (16, 300)) / 16)` to even, kept on the sheet; nothing is painted, highlighted or
+scrolled, and the selected cell is kept. The arrow presses step the tile (unless Ctrl) and scroll the camera by 4 (unless
+Shift), as A4 routed them. LooseCursor follows the editor's cursor in either mode, as the original's camera did. Defects 9 and
+10 are fixed (table above). Kept as the original: the highlight is the cell's colour, so the cell under the cursor when the
+editor closes keeps its yellow (a Hard one shows yellow in Play until the editor highlights and leaves it again); the editor
+writes a cell only when it changes, so the map's revision counts real changes. The readout's "Coords:" is the editor's
+selected cell, set by its World steps only (A12). Runtime: `EditorCursorView` draws the World hand in the world (sorting
+-50, after the cells, before the characters) at the interpolated camera's centre plus (6, 9), tinted yellow with left, red
+with right, white otherwise; `EditorGuiView` draws after the menu and before the console, as `GuiManager.Draw`'s state
+branch: in the editor the palette (`tilepalette_background` at 0.4 stretched from 300 x 300 to (5, H - 305, 300, 295),
+bilinear; the tileset's 18 x 10 whole tiles at (16, 300) at alpha 128; `square_selector` over the selected tile) and the
+Screen hand while Space is held; in the menu the GUI's hand at the mouse kept on screen. The three pictures are the original
+PNGs under `Resources/Gui`. The device reports the mouse on the letterboxed reference; while the editor is in World mode
+the OS cursor is locked and the mouse's travel since the last step, in reference pixels, is reported as an offset from the
+centre, which is the original's warp-and-read; an unfocused window reports the mouse at rest (the original's inactive
+window kept reading wherever the mouse was). The OS cursor is hidden while playing, as `IsMouseVisible = false` hid it.
+`unity.ps1 capture` writes `editor-paint.png` (a painted row, the yellow-highlighted cell under the hand, the palette) and
+`editor-palette.png` (Space held: the Screen hand over the palette).
 
 **Effects.** The one effect used, `filter`, is a 1 % radial vignette (its `refractSampler` was never
 bound, so it never refracted); it becomes a URP full-screen pass over the world camera with its

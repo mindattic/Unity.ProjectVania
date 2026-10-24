@@ -145,6 +145,43 @@ namespace Unity.ProjectVania.Tests
         }
 
         [Test]
+        public void TheMouseReachesCoreOnTheReferenceScreen()
+        {
+            Set(_mouse.position, new Vector2(Screen.width / 2f + 7f, Screen.height / 2f));
+            var frame = new InputFrame();
+            _host.Device.Poll();
+            _host.Device.Sample(frame);
+            var expected = HudTextView.ToReference(new Vector2(Screen.width / 2f + 7f, Screen.height / 2f), Screen.width, Screen.height);
+            Assert.That(frame.HasMouse, Is.True);
+            Assert.That((frame.MouseX, frame.MouseY), Is.EqualTo((expected.x, expected.y)));
+            Assert.That(frame.WindowActive, Is.EqualTo(Application.isFocused));
+        }
+
+        [Test]
+        public void AsAJoystickTheMouseIsItsTravelFromTheCentre()
+        {
+            _host.Device.Joystick = true;
+            Set(_mouse.delta, new Vector2(10f, -4f));
+            _host.Device.Poll();
+            var frame = new InputFrame();
+            _host.Device.Sample(frame);
+            var scale = 800f / Core.Display.PixelPerfect.Fit(Screen.width, Screen.height).Width;
+            if (Application.isFocused)
+            {
+                Assert.That(frame.MouseX, Is.EqualTo(400f + 10f * scale).Within(1e-3f));
+                Assert.That(frame.MouseY, Is.EqualTo(300f + 4f * scale).Within(1e-3f), "y down");
+            }
+            else
+            {
+                Assert.That((frame.MouseX, frame.MouseY), Is.EqualTo((400f, 300f)), "an unfocused window's mouse is at rest");
+            }
+
+            frame.Clear();
+            _host.Device.Sample(frame);
+            Assert.That((frame.MouseX, frame.MouseY), Is.EqualTo((400f, 300f)), "the travel is read once, as the warp re-centred it");
+        }
+
+        [Test]
         public void TheKeysReachCoreUnderTheOriginalsNames()
         {
             Press(_keyboard.equalsKey);

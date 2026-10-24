@@ -1,0 +1,29 @@
+{
+  "_source": "MapEditor\\MapEditor.cs, Cursor.cs, TilePalette.cs, Tileset.cs and Tile.cs (RECONSTRUCTION 8, 12), in the original's screen and map pixels, y down. The camera's mouse scroll (2) and cell scroll (4) are camera.json's editorScrollSteps; a cleared cell is grid.json's fresh cell. BIBLE defects 9 and 10 are fixed in code: the palette draws each tile once at its place, the pick and the arrow steps stay on the sheet, and nothing is painted or highlighted outside the grid.",
+  "cursor": {
+    "_about": "Cursor(\"cursor\", ...): cursor_hand_topleft, 13 x 18, drawn with its top-left at Position. World mode: the mouse more than deadZone / 2 from the screen centre scrolls the camera, and Position is the view's centre plus half the picture (whole pixels). Colour: left button, else right button, else neither.",
+    "asset": "cursor_hand_topleft",
+    "size": [13, 18],
+    "deadZone": 2,
+    "leftColour": "Yellow",
+    "rightColour": "Red",
+    "colour": "White"
+  },
+  "paintColour": "White",
+  "highlightColour": "Yellow",
+  "tileSize": 16,
+  "playerBounds": [0.4, 0.8],
+  "palette": {
+    "_about": "TilePalette: GuiItem(\"tilepalette_background\", g.Alpha(0.4f), (5, H - 305, 300, 295)), the tileset at Offset (16, 300) with every Tile's colour (255, 255, 255, 128), and square_selector at Offset + SelectedTile * 16 in white.",
+    "background": "tilepalette_background",
+    "backgroundAlpha": 0.4,
+    "backgroundX": 5,
+    "backgroundFromBottom": 305,
+    "backgroundSize": [300, 295],
+    "offset": [16, 300],
+    "tilesetSize": [303, 173],
+    "tileAlpha": 128,
+    "selector": "square_selector",
+    "selectorSize": [16, 16]
+  }
+}

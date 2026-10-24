@@ -62,12 +62,13 @@ namespace Unity.ProjectVania.Core.Gui
         public static string Cursor(float x, float y) => Number(x) + ", " + Number(y);
 
         /// <summary>
-        /// <c>"Coords:" + MapEditor.SelectedCell</c>: the cell under the editor's cursor, which the editor updates only while
-        /// it is open, so it keeps the last cell after the editor closes and is (0, 0) before it first opens.
+        /// <c>"Coords:" + MapEditor.SelectedCell</c>: the cell under the editor's cursor, which the editor sets only on its
+        /// World-mode steps, so it keeps the last cell after the editor closes (or while Space is held) and is (0, 0) before
+        /// the editor's first step.
         /// </summary>
         public static string Cell(GameWorld world, PlayerId player, HudReadoutData data)
         {
-            var cell = world?.Map != null ? world.Map.GetGridCoordinates(world.EditorCursor(player)) : new CellIndex(0, 0);
+            var cell = world?.Editor(player)?.SelectedCell ?? new CellIndex(0, 0);
             return data.CellPrefix + cell.X + ", " + cell.Y;
         }
 

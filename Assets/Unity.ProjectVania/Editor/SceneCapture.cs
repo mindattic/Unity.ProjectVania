@@ -13,7 +13,7 @@ namespace Unity.ProjectVania.EditorTools
     /// command line (<c>unity.ps1 capture</c>, which runs with graphics). It boots the game as the player would, lets the
     /// characters fall and land and the Loose camera settle on player one, then captures the followed view, the view
     /// zoomed in and turned by the camera keys (the original's matrix: scale cubed, about the world origin), the map's
-    /// top-left corner, and that corner with the editor open. The main menu's pictures (menu, menu-video), the console's (console-sliding, console, console-full-red) and the HUD's (play-ui, hud-quickbar-away, hud-fade-half) draw the UI Toolkit overlay over the camera's picture; the others are the camera alone, without the names or the HUD.
+    /// top-left corner, and that corner with the editor open. The main menu's pictures (menu, menu-video), the console's (console-sliding, console, console-full-red), the HUD's (play-ui, hud-quickbar-away, hud-fade-half) and the map editor's (editor-paint, editor-palette) draw the UI Toolkit overlay over the camera's picture; the others are the camera alone, without the names or the HUD.
     /// </summary>
     public static class SceneCapture
     {
@@ -117,6 +117,28 @@ namespace Unity.ProjectVania.EditorTools
                 Nudge(host, CameraNudge.ZoomOut, 20);
                 Present(host);
 
+                // The map editor (U.VAN-US-A14): the third tile of the second row picked with the arrows, the mouse
+                // scrolls the view up off the floor, left held paints a row of it while the mouse scrolls right, the cursor
+                // rests over the row's end (highlighted yellow), then Space picks another tile under the Screen cursor.
+                host.World.Submit(new ToggleMapEditor(PlayerId.One));
+                host.World.Submit(new StepEditor(PlayerId.One, 1, 0, true, false));
+                host.World.Submit(new StepEditor(PlayerId.One, 0, 1, true, false));
+                Edit(host, 400f, 300f, 1);
+                host.World.Submit(new StepEditor(PlayerId.One, 1, 0, true, false));
+                Edit(host, 400f, 260f, 8);
+                Edit(host, 400f, 300f, 40);
+                Edit(host, 430f, 300f, 30, left: true);
+                Edit(host, 400f, 300f, 40);
+                Present(host);
+                SaveWithUi(camera, host, Path.Combine(output, "editor-paint.png"));
+                Edit(host, 16f + 16 * 6, 300f + 16 * 3, 1, screen: true);
+                Present(host);
+                SaveWithUi(camera, host, Path.Combine(output, "editor-palette.png"));
+                Edit(host, 400f, 300f, 1);
+                host.World.Submit(new ToggleMapEditor(PlayerId.One));
+                Steps(host, 1);
+                Present(host);
+
                 var follow = camera.GetComponent<GameCamera>();
                 follow.enabled = false;
                 camera.GetComponent<PixelPerfectCamera>().Magnification = 1f;
@@ -150,6 +172,8 @@ namespace Unity.ProjectVania.EditorTools
             host.GetComponentInChildren<NameTags>()?.Place();
             host.GetComponentInChildren<HudView>()?.Refresh();
             host.GetComponentInChildren<MainMenuView>()?.Refresh();
+            host.GetComponentInChildren<EditorCursorView>()?.Present(1f);
+            host.GetComponentInChildren<EditorGuiView>()?.Refresh();
             host.GetComponentInChildren<ConsoleView>()?.Refresh();
             host.GetComponentInChildren<HudTextView>()?.Refresh();
             var follow = host.GetComponentInChildren<GameCamera>();
@@ -170,6 +194,17 @@ namespace Unity.ProjectVania.EditorTools
             }
 
             Steps(host, 1);
+        }
+
+        /// <summary><paramref name="steps"/> editor steps with the mouse at (x, y), left held or not, Space held for <paramref name="screen"/>.</summary>
+        static void Edit(GameHost host, float x, float y, int steps, bool left = false, bool screen = false)
+        {
+            for (var i = 0; i < steps; i++)
+            {
+                host.World.Submit(new SetEditorCursor(PlayerId.One, screen ? EditorCursorMode.Screen : EditorCursorMode.World));
+                host.World.Submit(new PointEditor(PlayerId.One, x, y, left, false));
+                host.World.Advance(1.0 / 60);
+            }
         }
 
         static void Steps(GameHost host, int steps)

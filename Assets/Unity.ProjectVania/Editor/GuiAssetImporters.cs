@@ -7,7 +7,8 @@ namespace Unity.ProjectVania.EditorTools
     /// Imports the GUI's art (RECONSTRUCTION 9, 13) whole and uncompressed, without mipmaps. XNA's SpriteBatch sampled
     /// linearly, which matters only where the GUI stretches a picture: <c>menu1</c> (543 x 742) is drawn over the whole
     /// 800 x 600 screen, <c>console1</c> (608 x 203) and <c>red</c> (1 x 1) over the console's 800 x 200, and the portrait's
-    /// photo <c>portrait_1</c> (84 x 94) over its 99 x 110 frame, so they are bilinear-filtered as the original showed them;
+    /// photo <c>portrait_1</c> (84 x 94) over its 99 x 110 frame, and the editor's <c>tilepalette_background</c> (300 x 300) over
+    /// 300 x 295, so they are bilinear-filtered as the original showed them;
     /// everything else is drawn at its own size and is point-filtered like the world's art. Set here in code rather than
     /// by hand in the Inspector.
     /// </summary>
@@ -16,7 +17,7 @@ namespace Unity.ProjectVania.EditorTools
         public const string Folder = "Assets/Unity.ProjectVania/Resources/" + MainMenuView.ResourceFolder + "/";
 
         /// <summary>The GUI pictures the original stretched.</summary>
-        public static readonly string[] Stretched = { "menu1", "console1", "red", "portrait_1" };
+        public static readonly string[] Stretched = { "menu1", "console1", "red", "portrait_1", "tilepalette_background" };
 
         void OnPreprocessTexture()
         {

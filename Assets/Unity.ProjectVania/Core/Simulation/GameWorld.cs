@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Unity.ProjectVania.Core.Characters;
 using Unity.ProjectVania.Core.Commands;
+using Unity.ProjectVania.Core.Editing;
 using Unity.ProjectVania.Core.Gui;
 using Unity.ProjectVania.Core.Menus;
 using Unity.ProjectVania.Core.Settings;
@@ -69,12 +70,15 @@ namespace Unity.ProjectVania.Core.Simulation
         /// a camera for each character's player (<see cref="Camera"/>); with <paramref name="menu"/>, the main menu (<see cref="Menu"/>);
         /// with <paramref name="console"/>, the console (<see cref="Console"/>); with <paramref name="audio"/>, its starting mute;
         /// with <paramref name="hud"/>, the HUD and its six start-up messages (<see cref="Hud"/>); with <paramref name="audio"/> and
-        /// <paramref name="animations"/>, each character's run and wall-slide cues (<see cref="CharacterCues"/>).
+        /// <paramref name="animations"/>, each character's run and wall-slide cues (<see cref="CharacterCues"/>); with
+        /// <paramref name="editor"/>, the map editor (<see cref="Editor"/>), its drag box cut from <paramref name="animations"/>' frames.
         /// </summary>
         public GameWorld(Map map, PlayerData player, Character character, NameData names, Random random, CameraData camera = null, MenuData menu = null,
-            ConsoleData console = null, AudioData audio = null, HudData hud = null, AnimationData animations = null)
+            ConsoleData console = null, AudioData audio = null, HudData hud = null, AnimationData animations = null, EditorData editor = null)
             : this(map)
         {
+            _editorData = editor;
+            _frameSize = animations?.FrameSize ?? 0;
             if (menu != null) Menu = new MainMenu(menu);
             if (console != null) Console = new GameConsole(console);
             if (hud != null) Hud = new Hud(hud);
@@ -97,6 +101,7 @@ namespace Unity.ProjectVania.Core.Simulation
         // camera data has none, and camera commands then do nothing.
         void AddCameras(CameraData camera)
         {
+            _camera = camera;
             if (camera == null) return;
             for (var i = 0; i < _characters.Count; i++)
             {
@@ -118,7 +123,13 @@ namespace Unity.ProjectVania.Core.Simulation
         // Each player's camera (the original's one CameraManager, one per player instead of one global), stepped in
         // player order, and where each player's map-editor cursor is (MapEditor.Cursor.Position, which LooseCursor follows).
         readonly SortedDictionary<int, WorldCamera> _cameras = new SortedDictionary<int, WorldCamera>();
-        readonly Dictionary<int, PixelVector> _editorCursors = new Dictionary<int, PixelVector>();
+        CameraData _camera;
+
+        // Each player's map editor (the original's one MapEditor, one per player), made the first time that player's
+        // commands reach it and stepped in player order while the game is in the MapEditor state.
+        readonly SortedDictionary<int, MapEditor> _editors = new SortedDictionary<int, MapEditor>();
+        readonly EditorData _editorData;
+        readonly int _frameSize;
 
         /// <summary>The collision grid (RECONSTRUCTION 5), or null for a world built without one.</summary>
         public Map Map { get; }
@@ -187,10 +198,27 @@ namespace Unity.ProjectVania.Core.Simulation
         /// <summary>
         /// Where <paramref name="player"/>'s map-editor cursor is (<c>MapEditor.Cursor.Position</c>, the original's (0, 0)
         /// until the editor first opens), which the LooseCursor camera mode follows. Entering the editor puts it on the
-        /// driven character, as <c>ToggleMapEditor</c> did; the editor's own cursor movement is the editor's story (A14).
+        /// driven character, as <c>ToggleMapEditor</c> did; then each editor step moves it (<see cref="MapEditor"/>).
         /// </summary>
-        public PixelVector EditorCursor(PlayerId player) =>
-            player.IsValid && _editorCursors.TryGetValue(player.Value, out var at) ? at : new PixelVector(0f, 0f);
+        public PixelVector EditorCursor(PlayerId player) => Editor(player)?.Cursor ?? new PixelVector(0f, 0f);
+
+        /// <summary>
+        /// <paramref name="player"/>'s map editor (RECONSTRUCTION 12), or null until that player first uses it. A world built
+        /// without editor.json still keeps where its cursor was put, and does nothing else in the editor.
+        /// </summary>
+        public MapEditor Editor(PlayerId player) =>
+            player.IsValid && _editors.TryGetValue(player.Value, out var editor) ? editor : null;
+
+        MapEditor EditorFor(PlayerId player)
+        {
+            if (!_editors.TryGetValue(player.Value, out var editor))
+            {
+                editor = new MapEditor(_editorData, _frameSize);
+                _editors.Add(player.Value, editor);
+            }
+
+            return editor;
+        }
 
         /// <summary>Steps taken so far.</summary>
         public long Tick { get; private set; }
@@ -294,6 +322,15 @@ namespace Unity.ProjectVania.Core.Simulation
             // The rest of GuiManager.Update: the quick bar, the lenses and the message stack.
             Hud?.Update();
 
+            // MapEditor.Update, the last component, only in the editor: each player's cursor, drag, paint and palette pick.
+            if (State == GameState.MapEditor)
+            {
+                foreach (var entry in _editors)
+                {
+                    entry.Value.Step(Camera(new PlayerId(entry.Key)), Map, _characters, _camera != null ? _camera.EditorScrollSteps.X : 0f);
+                }
+            }
+
             for (int i = 0; i < _characters.Count; i++)
             {
                 if (_characters[i].Action != _actionsBefore[i])
@@ -332,7 +369,7 @@ namespace Unity.ProjectVania.Core.Simulation
                         ChangeState(toggle.Player, GameState.MapEditor);
                         Camera(toggle.Player)?.SetMode(CameraMode.Free);
                         var driven = Driven(toggle.Player);
-                        if (driven != null) _editorCursors[toggle.Player.Value] = driven.Position;
+                        if (driven != null) EditorFor(toggle.Player).Open(driven.Position);
                     }
 
                     break;
@@ -396,10 +433,21 @@ namespace Unity.ProjectVania.Core.Simulation
                     Camera(nudge.Player)?.Nudge(nudge.Nudge);
                     break;
 
-                // An editor direction press scrolls the camera a cell step (Cursor.MoveCellLeft ...: ScrollLeft(4))
-                // unless Shift; its palette step is the editor's (A14).
-                case StepEditor step when step.MoveCell:
-                    Camera(step.Player)?.ScrollCell(step.Dx, step.Dy);
+                // An editor direction press steps the palette's tile unless Ctrl (TilePalette.SelectTileLeft ...), then
+                // scrolls the camera a cell step unless Shift (Cursor.MoveCellLeft ...: ScrollLeft(4)).
+                case StepEditor step:
+                    if (step.SelectTile) EditorFor(step.Player).StepTile(step.Dx, step.Dy);
+                    if (step.MoveCell) Camera(step.Player)?.ScrollCell(step.Dx, step.Dy);
+                    break;
+
+                // Space held or not, every editor step (CheckInput_MapEditor).
+                case SetEditorCursor set:
+                    EditorFor(set.Player).SetMode(set.Mode);
+                    break;
+
+                // The mouse the editor's update reads this step.
+                case PointEditor point:
+                    EditorFor(point.Player).Point(point);
                     break;
 
                 case ToggleFullscreen _:

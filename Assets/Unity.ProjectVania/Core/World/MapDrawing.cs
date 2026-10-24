@@ -87,8 +87,8 @@ namespace Unity.ProjectVania.Core.World
 
         /// <summary>
         /// Paints every drawn cell into <paramref name="target"/> (cleared to transparent first): the cell's source
-        /// rectangle of <paramref name="tileset"/>, unscaled, at the cell's position (index x cell size), tinted white at
-        /// the cell's alpha, composited in <c>foreach (GridCell cell in cells)</c> order (column-major: x outer, y inner).
+        /// rectangle of <paramref name="tileset"/>, unscaled, at the cell's position (index x cell size), tinted by the
+        /// cell's colour, composited in <c>foreach (GridCell cell in cells)</c> order (column-major: x outer, y inner).
         /// Pixels falling outside the tileset or the target are skipped. Drawing the result over the layers is the same as
         /// drawing each cell over them.
         /// </summary>
@@ -112,12 +112,51 @@ namespace Unity.ProjectVania.Core.World
             }
         }
 
+        /// <summary>
+        /// Repaints one cell of a canvas <see cref="PaintCells"/> painted: clears the cell's square and paints the cell
+        /// there if it is drawn. Cells never overlap while every tile is at most a cell (every tile the data and the
+        /// editor give is exactly one), so the result is the whole repaint's; returns false, painting nothing, for a cell
+        /// whose tile is larger, which needs the whole repaint.
+        /// </summary>
+        public static bool RepaintCell(Map map, int x, int y, GameState state, PixelImage tileset, PixelImage target)
+        {
+            if (map == null) throw new ArgumentNullException(nameof(map));
+            if (tileset == null) throw new ArgumentNullException(nameof(tileset));
+            if (target == null) throw new ArgumentNullException(nameof(target));
+
+            var cell = map[x, y];
+            if (cell.Tile.Width > map.CellSize || cell.Tile.Height > map.CellSize)
+            {
+                return false;
+            }
+
+            int left = x * map.CellSize;
+            int top = y * map.CellSize;
+            for (int v = 0; v < map.CellSize; v++)
+            {
+                for (int u = 0; u < map.CellSize; u++)
+                {
+                    if (target.Contains(left + u, top + v))
+                    {
+                        target[left + u, top + v] = Rgba.Transparent;
+                    }
+                }
+            }
+
+            if (IsDrawn(cell, state))
+            {
+                PaintCell(cell, left, top, tileset, target);
+            }
+
+            return true;
+        }
+
         /// <summary>The pixel size <see cref="PaintCells"/> needs to hold every cell of <paramref name="map"/>.</summary>
         public static PixelImage CellCanvas(Map map) => new PixelImage(map.Columns * map.CellSize, map.Rows * map.CellSize);
 
         static void PaintCell(GridCell cell, int left, int top, PixelImage tileset, PixelImage target)
         {
-            var tint = new Rgba(255, 255, 255, cell.Alpha);
+            var tint = cell.Tint;
             var tile = cell.Tile;
             for (int v = 0; v < tile.Height; v++)
             {

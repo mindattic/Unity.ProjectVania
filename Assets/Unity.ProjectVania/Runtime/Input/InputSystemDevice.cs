@@ -1,4 +1,5 @@
 using System;
+using Unity.ProjectVania.Core.Display;
 using Unity.ProjectVania.Core.Input;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
@@ -14,6 +15,13 @@ namespace Unity.ProjectVania
     /// <see cref="InputFrame"/> once per 60 Hz step (RECONSTRUCTION 3). The game renders at any rate, so a press that
     /// starts and ends between two steps is latched from its input event and reported down to the next step, and
     /// wheel movement is queued as notches, one per step: nothing pressed is lost and nothing is read twice. It also drives both pad motors from the left trigger every frame, as the original did.
+    /// <para>
+    /// The mouse is reported on the 800 x 600 reference (pixels, y down, through the letterboxed viewport). While
+    /// <see cref="Joystick"/> is set (the editor's World mode) the original warped the OS mouse back to the screen centre
+    /// every frame and read its offset next frame; here the cursor is locked and the mouse's travel since the last step,
+    /// in reference pixels, is reported as an offset from the centre, which is the same reading. An unfocused window
+    /// reports the mouse at the centre.
+    /// </para>
     /// </summary>
     public sealed class InputSystemDevice : IInputDevice, IDisposable
     {
@@ -63,6 +71,10 @@ namespace Unity.ProjectVania
         (ButtonControl, PadButton)[] _buttons;
         Mouse _mouseButtonsOf;
         (ButtonControl, MouseButton)[] _mouseButtons;
+        UnityEngine.Vector2 _travel;
+
+        /// <summary>Whether the mouse is read as a joystick about the screen centre (the editor's World mode).</summary>
+        public bool Joystick { get; set; }
 
         /// <param name="stickPressPoint">How far a stick or trigger must go to count as pressed (input.json).</param>
         public InputSystemDevice(float stickPressPoint)
@@ -95,6 +107,7 @@ namespace Unity.ProjectVania
             {
                 var scroll = mouse.scroll.ReadValue().y;
                 _wheel += scroll > 0f ? 1 : scroll < 0f ? -1 : 0;
+                _travel = Joystick ? _travel + mouse.delta.ReadValue() : UnityEngine.Vector2.zero;
             }
         }
 
@@ -184,12 +197,41 @@ namespace Unity.ProjectVania
                         frame.Set(button);
                     }
                 }
+
+                SampleMouse(frame, mouse);
             }
 
             // One queued notch per step, so each notch is one zoom step as in the original.
             frame.Wheel = Math.Sign(_wheel);
             _wheel -= frame.Wheel;
             _latched.Clear();
+        }
+
+        /// <summary>The mouse on the reference screen: an offset from its centre while a joystick, else where it is.</summary>
+        void SampleMouse(InputFrame frame, Mouse mouse)
+        {
+            frame.WindowActive = UnityEngine.Application.isFocused;
+            var width = UnityEngine.Screen.width;
+            var height = UnityEngine.Screen.height;
+            const float centreX = PixelPerfect.ReferenceWidth / 2f;
+            const float centreY = PixelPerfect.ReferenceHeight / 2f;
+            if (width <= 0 || height <= 0)
+            {
+                frame.SetMouse(centreX, centreY);
+                return;
+            }
+
+            if (Joystick)
+            {
+                var scale = PixelPerfect.ReferenceWidth / (float)PixelPerfect.Fit(width, height).Width;
+                var travel = frame.WindowActive ? _travel : UnityEngine.Vector2.zero;
+                frame.SetMouse(centreX + travel.x * scale, centreY - travel.y * scale);
+                _travel = UnityEngine.Vector2.zero;
+                return;
+            }
+
+            var at = HudTextView.ToReference(mouse.position.ReadValue(), width, height);
+            frame.SetMouse(at.x, at.y);
         }
 
         /// <summary>Stops the rumble the left trigger started.</summary>

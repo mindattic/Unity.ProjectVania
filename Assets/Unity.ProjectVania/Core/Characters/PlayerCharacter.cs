@@ -146,6 +146,12 @@ namespace Unity.ProjectVania.Core.Characters
             Terrain = TerrainState.InAir;
         }
 
+        /// <summary>
+        /// The map editor's drag (<c>player.Position = cursor.Position</c>): only the position moves; the velocity and the
+        /// action are kept, so the character falls on from there once the game is back in Play.
+        /// </summary>
+        internal void Place(PixelVector position) => _position = position;
+
         /// <summary><c>Initiate_Move</c>: face and move that way; Running only on the ground and not jumping.</summary>
         public void Move(int direction)
         {

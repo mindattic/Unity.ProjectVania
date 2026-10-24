@@ -26,11 +26,12 @@ namespace Unity.ProjectVania.Core.Settings
         public const string NamesFile = "names.json";
         public const string InputFile = "input.json";
         public const string HudFile = "hud.json";
+        public const string EditorFile = "editor.json";
 
         /// <summary>Every data file the registry reads.</summary>
         public static readonly string[] Files =
         {
-            PlayerFile, CharactersFile, AnimationsFile, GridFile, MenuFile, CameraFile, ConsoleFile, AudioFile, SegmentsFile, NamesFile, InputFile, HudFile,
+            PlayerFile, CharactersFile, AnimationsFile, GridFile, MenuFile, CameraFile, ConsoleFile, AudioFile, SegmentsFile, NamesFile, InputFile, HudFile, EditorFile,
         };
 
         private GameSettings()
@@ -49,6 +50,7 @@ namespace Unity.ProjectVania.Core.Settings
         public NameData Names { get; private set; }
         public InputData Input { get; private set; }
         public HudData Hud { get; private set; }
+        public EditorData Editor { get; private set; }
 
         /// <summary>The original-to-Runtime unit mapping (grid.json units).</summary>
         public OriginalUnits Units { get; private set; }
@@ -80,6 +82,7 @@ namespace Unity.ProjectVania.Core.Settings
                 Names = Read(source, NamesFile, errors, NameData.Read),
                 Input = Read(source, InputFile, errors, InputData.Read),
                 Hud = Read(source, HudFile, errors, HudData.Read),
+                Editor = Read(source, EditorFile, errors, EditorData.Read),
             };
 
             if (errors.Count == 0)
@@ -197,6 +200,17 @@ namespace Unity.ProjectVania.Core.Settings
             if (Hud.Screen.X != Grid.ReferenceScreen.X || Hud.Screen.Y != Grid.ReferenceScreen.Y)
             {
                 errors.Add($"{HudFile}: screen ({Hud.Screen.X}, {Hud.Screen.Y}) must be {GridFile}'s referenceScreen ({Grid.ReferenceScreen.X}, {Grid.ReferenceScreen.Y})");
+            }
+
+            // A painted cell takes one palette tile, so a tile must be exactly a cell.
+            if (Editor.TileSize != Grid.CellSize)
+            {
+                errors.Add($"{EditorFile}: tileSize {Editor.TileSize} must be {GridFile}'s cellSize {Grid.CellSize}");
+            }
+
+            if (Editor.Palette.TilesetSize.X < Editor.TileSize || Editor.Palette.TilesetSize.Y < Editor.TileSize)
+            {
+                errors.Add($"{EditorFile}: palette.tilesetSize must hold at least one {Editor.TileSize} px tile");
             }
         }
 

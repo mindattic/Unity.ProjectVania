@@ -20,6 +20,26 @@ namespace Unity.ProjectVania.Core.Input
         /// <summary>Wheel movement this step: positive is up (zoom in), negative down, 0 none. Only the sign is read.</summary>
         public int Wheel { get; set; }
 
+        /// <summary>Whether the device reported where the mouse is this step (<see cref="MouseX"/>, <see cref="MouseY"/>).</summary>
+        public bool HasMouse { get; private set; }
+
+        /// <summary>The mouse on the 800 x 600 reference screen, pixels, y down (<c>Mouse.GetState().X</c>).</summary>
+        public float MouseX { get; private set; }
+
+        public float MouseY { get; private set; }
+
+        /// <summary>Whether the game's window has the focus (<c>Game.IsActive</c>); the editor warps the mouse only then.</summary>
+        public bool WindowActive { get; set; } = true;
+
+        /// <summary>Reports the mouse at (<paramref name="x"/>, <paramref name="y"/>) on the reference screen.</summary>
+        public InputFrame SetMouse(float x, float y)
+        {
+            HasMouse = true;
+            MouseX = x;
+            MouseY = y;
+            return this;
+        }
+
         public bool IsDown(Key key)
         {
             var code = (int)key;
@@ -85,6 +105,10 @@ namespace Unity.ProjectVania.Core.Input
             _mouse = 0;
             PadConnected = false;
             Wheel = 0;
+            HasMouse = false;
+            MouseX = 0f;
+            MouseY = 0f;
+            WindowActive = true;
         }
 
         public void CopyFrom(InputFrame other)
@@ -94,6 +118,10 @@ namespace Unity.ProjectVania.Core.Input
             _mouse = other._mouse;
             PadConnected = other.PadConnected;
             Wheel = other.Wheel;
+            HasMouse = other.HasMouse;
+            MouseX = other.MouseX;
+            MouseY = other.MouseY;
+            WindowActive = other.WindowActive;
         }
     }
 

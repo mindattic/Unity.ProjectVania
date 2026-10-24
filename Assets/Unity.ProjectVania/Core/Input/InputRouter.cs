@@ -99,6 +99,13 @@ namespace Unity.ProjectVania.Core.Input
             }
 
             output.Add(new SetEditorCursor(player, read.Down(InputAction.EditorScreenCursor) ? EditorCursorMode.Screen : EditorCursorMode.World));
+            var frame = read.Input.Current;
+            if (frame.HasMouse)
+            {
+                // The mouse the editor's update reads after the camera moves (MapEditor.Update's Input.CurrentMouseState).
+                output.Add(new PointEditor(player, frame.MouseX, frame.MouseY, frame.IsDown(MouseButton.Left), frame.IsDown(MouseButton.Right), frame.WindowActive));
+            }
+
             MenuAndConsole(read, player, output);
 
             var selectTile = !read.Down(InputAction.Ctrl);
