@@ -11,8 +11,8 @@ namespace Unity.ProjectVania
     /// The code-built bootstrap (RECONSTRUCTION 0): the project's one scene is empty, and this composes everything
     /// at start-up instead of Inspector wiring. It points the shared profiles at the player's data folder, loads the
     /// settings registry (stopping with every error listed if a file is bad), then builds the pixel-perfect camera,
-    /// the game host, the map, a sprite per character, and the UI Toolkit root (with the characters' names and the main menu) at the 800x600 reference, and the cue player
-    /// the menu's sounds play through.
+    /// the game host, the map, a sprite per character, and the UI Toolkit root (with the characters' names, the main menu and the console) at the 800x600 reference, and the
+    /// cue player the menu's and the console's sounds play through.
     /// </summary>
     public static class Bootstrap
     {
@@ -87,6 +87,8 @@ namespace Unity.ProjectVania
             ui.gameObject.AddComponent<NameTags>().Initialize(host.World, settings.Characters.NameTag, camera, settings.Grid.PixelsPerUnit, ui.rootVisualElement);
             // The GUI draws after the scene, so the menu covers the world and its names (RECONSTRUCTION 9).
             ui.gameObject.AddComponent<MainMenuView>().Initialize(host.World, settings.Menu, ui.rootVisualElement);
+            // The console after the menu, as GuiManager.Draw drew it (RECONSTRUCTION 9, 10.1).
+            ui.gameObject.AddComponent<ConsoleView>().Initialize(host.World, ui.rootVisualElement);
             return host;
         }
 

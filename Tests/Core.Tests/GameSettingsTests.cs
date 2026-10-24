@@ -321,6 +321,21 @@ namespace Unity.ProjectVania.Core.Tests
         }
 
         [Test]
+        public void AConsoleWordTheScriptCouldNeverRead_IsRejected()
+        {
+            var twice = LoadFails(Patched(GameSettings.ConsoleFile, t => t.Replace("\"word\": \"white\"", "\"word\": \"red\"")));
+            Assert.That(twice.Errors.Single(), Does.Contain("console.json").And.Contain("'red' twice"));
+            var upper = LoadFails(Patched(GameSettings.ConsoleFile, t => t.Replace("\"word\": \"blue\"", "\"word\": \"Blue\"")));
+            Assert.That(upper.Errors.Single(), Does.Contain("'Blue'").And.Contain("lower-case"));
+        }
+
+        [Test]
+        public void TheConsoleBannerMayHoldBlankLines()
+        {
+            Assert.That(Load().Console.Script.Banner[1], Is.Empty);
+        }
+
+        [Test]
         public void UnitsThatDisagreeWithTheGridOrStepper_AreRejected()
         {
             Assert.That(LoadFails(Patched(GameSettings.GridFile, t => t.Replace("\"pixelsPerUnit\": 16", "\"pixelsPerUnit\": 32"))).Errors.Single(), Does.Contain("pixelsPerUnit"));

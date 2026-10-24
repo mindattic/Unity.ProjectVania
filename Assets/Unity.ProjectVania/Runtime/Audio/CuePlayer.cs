@@ -8,9 +8,10 @@ namespace Unity.ProjectVania
     /// Plays the cues the world names (<c>AudioManager.PlayAmbience</c> / <c>PlaySfx</c>, RECONSTRUCTION 11) from
     /// audio.json's cue table: the cue's wave is <c>Resources/Audio/&lt;wave&gt;.wav</c>, imported as the original's PCM,
     /// started as a new one-shot instance each time (XACT allowed 255 per category) at the cue's XACT volume, in
-    /// hundredths of a dB, times the table's volume. Nothing plays while the table is muted, as the original's play
-    /// methods returned while <c>Muted</c>. Only the cues whose waves have been imported are heard; the menu's four
-    /// are (U.VAN-US-A10), the rest of the table is the audio story's (A13).
+    /// hundredths of a dB, times the table's volume. Mute is the world's: it names no cue while muted (audio.json's
+    /// muted at start, then the console's mute), as the original's play methods returned while <c>Muted</c>. Only the cues
+    /// whose waves have been imported are heard: the menu's four (U.VAN-US-A10) and the console's two (A11); the rest of
+    /// the table is the audio story's (A13).
     /// </summary>
     public sealed class CuePlayer : MonoBehaviour
     {
@@ -60,7 +61,7 @@ namespace Unity.ProjectVania
         /// <summary>Starts <paramref name="cue"/>; returns whether it was started.</summary>
         public bool Play(string cue)
         {
-            if (_audio == null || _audio.Muted)
+            if (_audio == null)
             {
                 return false;
             }

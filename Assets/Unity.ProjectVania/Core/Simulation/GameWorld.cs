@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Unity.ProjectVania.Core.Characters;
 using Unity.ProjectVania.Core.Commands;
+using Unity.ProjectVania.Core.Gui;
 using Unity.ProjectVania.Core.Menus;
 using Unity.ProjectVania.Core.Settings;
 using Unity.ProjectVania.Core.Viewing;
@@ -21,21 +22,20 @@ namespace Unity.ProjectVania.Core.Simulation
     /// Step, by applying queued commands, each producing events. Frame order within a step
     /// follows the original (RECONSTRUCTION 1): input commands first, then the systems in order.
     /// </summary>
-    public sealed class GameWorld
+    public sealed class GameWorld : IScriptHost
     {
         readonly Queue<ICommand> _pending = new Queue<ICommand>();
         readonly List<IGameEvent> _events = new List<IGameEvent>();
         readonly FixedStepper _clock = new FixedStepper();
 
-        /// <summary>A world with no map (the state and command tests that need no grid).</summary>
-        public GameWorld()
+        /// <summary>
+        /// A world with no map and no characters (the state and command tests that need no grid), with menu.json's main
+        /// menu if given (the menu tests) and console.json's console if given (the console tests).
+        /// </summary>
+        public GameWorld(MenuData menu = null, ConsoleData console = null)
         {
-        }
-
-        /// <summary>A world with no map and no characters, with menu.json's main menu (the menu tests).</summary>
-        public GameWorld(MenuData menu)
-        {
-            Menu = new MainMenu(menu ?? throw new ArgumentNullException(nameof(menu)));
+            if (menu != null) Menu = new MainMenu(menu);
+            if (console != null) Console = new GameConsole(console);
         }
 
         /// <summary>A world on <paramref name="map"/> (the bridge level, <see cref="Map.FromSettings"/>) with no characters.</summary>
@@ -65,12 +65,16 @@ namespace Unity.ProjectVania.Core.Simulation
         /// The shipped world: one <paramref name="character"/> at each of player.json's spawn positions, each given a
         /// random name from <paramref name="names"/>' table for its gender drawn with <paramref name="random"/>
         /// (<c>new Player(position, gender)</c> and <c>g.RandomName</c>, RECONSTRUCTION 4.1); with <paramref name="camera"/>,
-        /// a camera for each character's player (<see cref="Camera"/>); with <paramref name="menu"/>, the main menu (<see cref="Menu"/>).
+        /// a camera for each character's player (<see cref="Camera"/>); with <paramref name="menu"/>, the main menu (<see cref="Menu"/>);
+        /// with <paramref name="console"/>, the console (<see cref="Console"/>); with <paramref name="audio"/>, its starting mute.
         /// </summary>
-        public GameWorld(Map map, PlayerData player, Character character, NameData names, Random random, CameraData camera = null, MenuData menu = null)
+        public GameWorld(Map map, PlayerData player, Character character, NameData names, Random random, CameraData camera = null, MenuData menu = null,
+            ConsoleData console = null, AudioData audio = null)
             : this(map)
         {
             if (menu != null) Menu = new MainMenu(menu);
+            if (console != null) Console = new GameConsole(console);
+            Muted = audio != null && audio.Muted;
             _player = player ?? throw new ArgumentNullException(nameof(player));
             if (character == null) throw new ArgumentNullException(nameof(character));
             if (names == null) throw new ArgumentNullException(nameof(names));
@@ -117,6 +121,21 @@ namespace Unity.ProjectVania.Core.Simulation
         /// </summary>
         public MainMenu Menu { get; }
 
+        /// <summary>
+        /// The console (RECONSTRUCTION 10), or null for a world built without console.json; without one, ~ flips the
+        /// Console state at once and typing does nothing.
+        /// </summary>
+        public GameConsole Console { get; }
+
+        /// <summary>The lens' fade the script last set (<c>Gui.Lenses.Fade</c>); Off at start.</summary>
+        public FadeState Fade { get; private set; }
+
+        /// <summary>Whether the game's sound is muted (<c>Audio.Muted</c>): no cue is named and no song started while it is.</summary>
+        public bool Muted { get; private set; }
+
+        /// <summary>Whether a song is playing, paused or stopped (<c>MediaPlayer.State</c>).</summary>
+        public MusicState Music { get; private set; }
+
         /// <summary>Every character, all simulated each Play step whether driven or not (RECONSTRUCTION 4).</summary>
         public IReadOnlyList<PlayerCharacter> Characters => _characters;
 
@@ -161,10 +180,16 @@ namespace Unity.ProjectVania.Core.Simulation
         public GameState State { get; private set; } = GameState.Play;
 
         /// <summary>
-        /// Whether the console is down (the original's <c>Console.Visible</c>). It is separate from the state: Esc from
-        /// the console opens the menu with the console still down, and closing the menu returns to Play under it.
+        /// Whether the console is down or sliding down (the original's <c>Console.Visible</c>). It is separate from the
+        /// state: Esc from the console opens the menu with the console still down, and closing the menu returns to Play
+        /// under it.
         /// </summary>
-        public bool ConsoleOpen { get; private set; }
+        public bool ConsoleOpen => Console != null ? Console.Visible : _consoleOpen;
+
+        bool _consoleOpen;
+
+        // Who last toggled the console, named on the state changes its slide makes.
+        PlayerId _consolePlayer = PlayerId.One;
 
         /// <summary>Events produced by the last <see cref="Advance"/> call, oldest first. Cleared on the next call.</summary>
         public IReadOnlyList<IGameEvent> Events => _events;
@@ -202,7 +227,8 @@ namespace Unity.ProjectVania.Core.Simulation
         /// <summary>
         /// One 1/60 s step in the original's frame order (RECONSTRUCTION 1): apply every queued command in order (the
         /// InputManager), then, only in Play, update every character (the SceneManager), then, in every state, every
-        /// camera, following the character already moved (the CameraManager), then advance the tick.
+        /// camera, following the character already moved (the CameraManager), then the console's slide and blink (the
+        /// GuiManager), then advance the tick.
         /// </summary>
         void Step()
         {
@@ -228,6 +254,19 @@ namespace Unity.ProjectVania.Core.Simulation
             foreach (var entry in _cameras)
             {
                 entry.Value.Step(CameraTarget(new PlayerId(entry.Key), entry.Value.Mode), Map);
+            }
+
+            if (Console != null)
+            {
+                switch (Console.Update())
+                {
+                    case SlideResult.Play:
+                        ChangeState(_consolePlayer, GameState.Play);
+                        break;
+                    case SlideResult.Console:
+                        ChangeState(_consolePlayer, GameState.Console);
+                        break;
+                }
             }
 
             for (int i = 0; i < _characters.Count; i++)
@@ -306,13 +345,18 @@ namespace Unity.ProjectVania.Core.Simulation
                     Cycle(cycle.Player, cycle.Direction);
                     break;
 
-                // Command_ToggleConsole flips the console down or up. The original changed the state only when the
-                // slide ended (opening) or on every frame of it (closing); until the console's slide is built (A11)
-                // the state changes at once.
+                // Command_ToggleConsole plays the console's cue (the long one once it is full height), even while a slide
+                // ignores the toggle, then starts a slide the other way; the slide itself sets the state (Step).
                 case ToggleConsole toggle:
-                    ConsoleOpen = !ConsoleOpen;
-                    _events.Add(new ConsoleToggled(Tick, ConsoleOpen));
-                    ChangeState(toggle.Player, ConsoleOpen ? GameState.Console : GameState.Play);
+                    ToggleTheConsole(toggle.Player);
+                    break;
+
+                case EditConsole edit when Console != null:
+                    Edit(edit);
+                    break;
+
+                case EndSong _:
+                    Music = MusicState.Stopped;
                     break;
 
                 case NavigateMenu navigate when State == GameState.MainMenu:
@@ -338,6 +382,90 @@ namespace Unity.ProjectVania.Core.Simulation
                     break;
             }
         }
+
+        void ToggleTheConsole(PlayerId player)
+        {
+            if (Console == null)
+            {
+                _consoleOpen = !_consoleOpen;
+                _events.Add(new ConsoleToggled(Tick, _consoleOpen));
+                ChangeState(player, _consoleOpen ? GameState.Console : GameState.Play);
+                return;
+            }
+
+            Cue(Console.ToggleCue);
+            if (Console.Sliding)
+            {
+                return;
+            }
+
+            _consolePlayer = player;
+            Console.Toggle();
+            _events.Add(new ConsoleToggled(Tick, Console.Visible));
+        }
+
+        /// <summary><c>CheckInput_Console</c>'s edits; Enter runs the line as a script after adding it to the history.</summary>
+        void Edit(EditConsole edit)
+        {
+            switch (edit.Input)
+            {
+                case ConsoleInput.Submit:
+                    ConsoleScript.Execute(Console.Submit(), Console, this);
+                    Console.FinishSubmit();
+                    break;
+                case ConsoleInput.Clear:
+                    Console.Clear();
+                    break;
+                case ConsoleInput.Backspace:
+                    Console.Backspace();
+                    break;
+                case ConsoleInput.Recall:
+                    Console.Recall();
+                    break;
+                case ConsoleInput.Append:
+                    Console.Append(edit.Text);
+                    break;
+            }
+        }
+
+        // The script's reach outside the console (IScriptHost).
+        void IScriptHost.Message(string text, SettingsColour colour) => _events.Add(new MessageRequested(Tick, text, colour.ToRgba()));
+
+        void IScriptHost.Fade(FadeState fade)
+        {
+            Fade = fade;
+            _events.Add(new FadeRequested(Tick, fade));
+        }
+
+        // AudioManager.PlayMusic: nothing while muted.
+        void IScriptHost.PlaySong(string song)
+        {
+            if (Muted) return;
+            Music = MusicState.Playing;
+            _events.Add(new SongRequested(Tick, song));
+        }
+
+        void IScriptHost.PauseMusic()
+        {
+            Music = MusicState.Paused;
+            _events.Add(new MusicPauseChanged(Tick, true));
+        }
+
+        // MediaPlayer.Resume: only a paused song resumes; with none, nothing changes.
+        void IScriptHost.ResumeMusic()
+        {
+            if (Music != MusicState.Paused) return;
+            Music = MusicState.Playing;
+            _events.Add(new MusicPauseChanged(Tick, false));
+        }
+
+        void IScriptHost.SetMuted(bool muted)
+        {
+            Muted = muted;
+            _events.Add(new MuteChanged(Tick, muted));
+        }
+
+        void IScriptHost.Quit() => _events.Add(new QuitRequested(Tick));
 
         void ToggleMenu(PlayerId player)
         {
@@ -393,9 +521,10 @@ namespace Unity.ProjectVania.Core.Simulation
             }
         }
 
+        // Audio.PlayAmbience / PlaySfx: nothing while muted.
         void Cue(string cue)
         {
-            if (!string.IsNullOrEmpty(cue)) _events.Add(new CueRequested(Tick, cue));
+            if (!Muted && !string.IsNullOrEmpty(cue)) _events.Add(new CueRequested(Tick, cue));
         }
 
         /// <summary>What a camera in <paramref name="mode"/> follows: the editor cursor for LooseCursor, else the driven character.</summary>

@@ -600,7 +600,8 @@ with Shift the shifted symbols (`! @ # $ % ^ & * ( ) _ + { } | : '' < > ?`, note
 apostrophe for Shift+`'`). Anything else newly pressed (and not Left Shift) appends
 `key.ToString().ToLower()`: letters give a lowercase letter, but Right Shift, arrows, Tab, F-keys and
 the like append their names ("rightshift", "left", "f5"). There is no uppercase and no cursor
-movement.
+movement. Esc is read by its own `if` before that chain, and the chain's last branch still sees it as a newly pressed key,
+so leaving the console for the menu also appends "escape" to the line (U.VAN-T14).
 
 ### 10.3 Script language (`Managers\ScriptManager.cs`)
 

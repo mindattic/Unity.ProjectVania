@@ -114,16 +114,9 @@ namespace Unity.ProjectVania
             }
         }
 
-        /// <summary>The XNA named colours.</summary>
-        public static Color Colour(SettingsColour colour)
-        {
-            switch (colour)
-            {
-                case SettingsColour.Red: return new Color32(255, 0, 0, 255);
-                case SettingsColour.Yellow: return new Color32(255, 255, 0, 255);
-                case SettingsColour.LightGray: return new Color32(211, 211, 211, 255);
-                default: return Color.white;
-            }
-        }
+        /// <summary>The XNA named colours (<see cref="SettingsColours.ToRgba"/>).</summary>
+        public static Color Colour(SettingsColour colour) => Colour(colour.ToRgba());
+
+        public static Color Colour(Rgba colour) => new Color32(colour.R, colour.G, colour.B, colour.A);
     }
 }

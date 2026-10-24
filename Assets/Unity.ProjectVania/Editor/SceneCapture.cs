@@ -13,7 +13,7 @@ namespace Unity.ProjectVania.EditorTools
     /// command line (<c>unity.ps1 capture</c>, which runs with graphics). It boots the game as the player would, lets the
     /// characters fall and land and the Loose camera settle on player one, then captures the followed view, the view
     /// zoomed in and turned by the camera keys (the original's matrix: scale cubed, about the world origin), the map's
-    /// top-left corner, and that corner with the editor open. The main menu's pictures (menu, menu-video) draw the UI Toolkit overlay over the camera's picture; the others are the camera alone, without the names.
+    /// top-left corner, and that corner with the editor open. The main menu's pictures (menu, menu-video) and the console's (console-sliding, console, console-full-red) draw the UI Toolkit overlay over the camera's picture; the others are the camera alone, without the names.
     /// </summary>
     public static class SceneCapture
     {
@@ -53,6 +53,41 @@ namespace Unity.ProjectVania.EditorTools
                 host.World.Submit(new NavigateMenu(PlayerId.One, MenuInput.Back));
                 host.World.Submit(new NavigateMenu(PlayerId.One, MenuInput.Back));
                 host.World.Advance(1.0 / 60);
+                Present(host);
+
+                // The console (U.VAN-US-A11): half-way down, then down with a few lines run, then full height on red.
+                host.World.Submit(new ToggleConsole(PlayerId.One));
+                Steps(host, 6);
+                Present(host);
+                SaveWithUi(camera, host, Path.Combine(output, "console-sliding.png"));
+                while (host.World.Console.Sliding)
+                {
+                    Steps(host, 1);
+                }
+
+                foreach (var line in new[] { "lee", "say hello", "console history yellow", "console text", "ver", "console text green", "type here" })
+                {
+                    Type(host, line, submit: line != "type here");
+                }
+
+                while (!host.World.Console.Blink)
+                {
+                    Steps(host, 1);
+                }
+
+                Present(host);
+                SaveWithUi(camera, host, Path.Combine(output, "console.png"));
+                Type(host, "console full", submit: true);
+                Type(host, "console bg red", submit: true);
+                Present(host);
+                SaveWithUi(camera, host, Path.Combine(output, "console-full-red.png"));
+                host.World.Submit(new ToggleConsole(PlayerId.One));
+                Steps(host, 1);
+                while (host.World.Console.Sliding)
+                {
+                    Steps(host, 1);
+                }
+
                 Present(host);
 
                 // = held 20 steps (scale 1.2, magnified 1.728 about the world origin), then PageUp 20 (0.2 rad clockwise).
@@ -98,11 +133,25 @@ namespace Unity.ProjectVania.EditorTools
             host.GetComponentInChildren<MapView>().Present();
             host.GetComponentInChildren<NameTags>()?.Place();
             host.GetComponentInChildren<MainMenuView>()?.Refresh();
+            host.GetComponentInChildren<ConsoleView>()?.Refresh();
             var follow = host.GetComponentInChildren<GameCamera>();
             if (follow != null && follow.enabled)
             {
                 follow.Present();
             }
+        }
+
+        /// <summary>Clears the console's line, types <paramref name="line"/> and, if asked, presses Enter, in one step.</summary>
+        static void Type(GameHost host, string line, bool submit)
+        {
+            host.World.Submit(new EditConsole(PlayerId.One, ConsoleInput.Clear));
+            host.World.Submit(new EditConsole(PlayerId.One, ConsoleInput.Append, line));
+            if (submit)
+            {
+                host.World.Submit(new EditConsole(PlayerId.One, ConsoleInput.Submit));
+            }
+
+            Steps(host, 1);
         }
 
         static void Steps(GameHost host, int steps)

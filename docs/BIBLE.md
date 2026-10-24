@@ -113,8 +113,8 @@ and M in one frame open the menu and then toggle the editor from it, as the orig
 original: pad A jumps on every step it is held (Space only on press); the middle mouse button toggles the editor in
 every state, the menu and console included; the console types a key with no character as its lower-case name
 ("rightshift", "f12"); the pad's left trigger drives both rumble motors. Fixed: defect 5 (Shift or pad A no longer
-block moving). The original's empty stubs (Q, W, J, K, L, 1-5, pad X/Y/B, the jump release) issue nothing. Until the
-console's slide is built (A11), opening it enters the Console state at once rather than when the slide ends.
+block moving). The original's empty stubs (Q, W, J, K, L, 1-5, pad X/Y/B, the jump release) issue nothing. The console's slide
+sets the state (A11, below); a world built without console.json (the routing tests) flips the Console state at once.
 
 **Character physics (U.VAN-US-A6).** Core's `PlayerCharacter` is `Player.cs` frame for frame: commands
 (`Initiate_Move`, `Cancel_Move`, `Initiate_Kneel`, `Command_Jump`) are applied before the step's update, then
@@ -220,8 +220,42 @@ PCM, a new one-shot each time at the cue's XACT volume (hundredths of a dB) time
 muted; only the four menu waves are imported so far, and the rest of the table (and mute, pause and the songs) is
 U.VAN-US-A13's. Left for later stories: the GUI's hand cursor, which the original drew over the menu at the mouse
 (`Cursor` in Screen mode, RECONSTRUCTION 8), comes with the editor's cursors (A14); the console's slide and its cues
-are A11's. `unity.ps1 capture` now also writes `menu.png` and `menu-video.png` (and `play-ui.png`), the camera's
+are A11's (below). `unity.ps1 capture` now also writes `menu.png` and `menu-video.png` (and `play-ui.png`), the camera's
 picture with the UI Toolkit panel drawn over it.
+
+**The console (U.VAN-US-A11).** Core's `GameConsole` is `Console.cs` and `ConsoleScript` is `ScriptManager.ExecuteScript`,
+every figure, word and text console.json's. `~` or pad Back plays `machine_1_short` (`machine_1` once `console full` made
+the panel taller than 200), even when a slide under way ignores the toggle, then starts the slide; the world steps the
+console after the cameras, in every state, as the GuiManager did. Down is the original's integer ease, `Y += 1 + (1 - Y
+/ 16)` (14 px at the top, 2 near the bottom), and the frame after `Y` stops being negative it snaps to 0 and only then
+enters the Console state, so the world keeps moving under the panel as it slides in; up is 12 px a frame, setting Play on
+every frame of it, until it hides at minus its height. Those state writes are the original's, quirks included: Esc while
+it slides down opens the menu, and the slide's end puts the console back in charge. The prompt blinks on the original's
+float timer (16.6667 ms a frame, flipping above 500, so every 30 frames); with the blink on the prompt sits at x 6 and the
+caret follows the line, off at x 4 without it. Typing is A4's chain into the world's line: Enter pushes the line onto the
+100-line history (newest first, the oldest dropped), runs it, then clears it and restarts recall; Up recalls the next
+older line up to the 100th; Delete clears, Backspace removes one (every frame with Shift). A key with no character types
+its name, and that includes Esc: leaving the console for the menu leaves "escape" on the line, as the original's did. The
+script lower-cases the line; `play music|battle`, `fade in|out|off` and `msg hi` are exact lines; `say` / `yell` rejoin
+the words after the first with single spaces exactly as the original's loop did (so a doubled space keeps an empty word,
+and `say  x` quotes `'' x''`), `yell` upper-cased with `!`; then by word count: `exit`/`quit` (a `QuitRequested`, as the
+menu's Quit), `version`/`ver` (History[0], replacing the echo), `pause` (pauses a playing song, else resumes, with its
+LightSteelBlue message either way), `mute` (flips the world's `Muted`, "Mute: On|Off"), `lee`/`buzzer` (the banner into
+History[0..8]), `console clear` (all but History[0], defect 11b kept), `console full` (600 high), `console text|history
+<colour>` (the six XNA colours), `console bg red` (the 1 x 1 red texture; the only one), and `unit text|history|bg|full`
+with five words reaching the same parameters; `run`, `execute` and `commander` do nothing. Defect 11 is fixed: the two
+crashes (`console text|history|bg` or `commander x` with two words) write console.json's usage line under the echo
+instead, and a test runs every combination of the language's words without a throw. Mute is the world's now: audio.json's
+`muted` is its start, the world names no cue (menu or console) and starts no song while muted, and `CuePlayer` plays
+whatever it is told. The script's reach outside the console is events the world names and state it keeps: messages
+(`MessageRequested`, text and XNA colour) for A12's message stack, the fade (`Fade`, `FadeRequested`) for A12's lens, and
+songs (`SongRequested`, `MusicPauseChanged`, `MuteChanged`, `Music`; `EndSong` for the player to report a finished song)
+for A13; until those stories land, those lines change state and name events but nothing is shown or heard. Runtime's
+`ConsoleView` draws it in the pixel-perfect panel after the menu, every frame: `console1` (608 x 203, bilinear, as it is
+stretched) over (0, Y, 800, height) at 0.75, then in the Console state only, in the Arial 10 equivalent (13 px), the
+yellow `>`, the line and the 100 history lines at the original's screen positions (not the panel's), in the console's two
+colours. The two `machine_1` waves and `console1` / `red` are imported. `unity.ps1 capture` writes `console-sliding.png`,
+`console.png` and `console-full-red.png`.
 
 **Effects.** The one effect used, `filter`, is a 1 % radial vignette (its `refractSampler` was never
 bound, so it never refracted); it becomes a URP full-screen pass over the world camera with its

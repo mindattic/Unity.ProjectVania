@@ -138,8 +138,11 @@ namespace Unity.ProjectVania.Core.Settings
             return value.Text;
         }
 
-        /// <summary>An array of strings; each must be non-empty unless <paramref name="allowEmpty"/>.</summary>
-        public List<string> Texts(string key, bool allowEmpty = false)
+        /// <summary>
+        /// An array of strings, not empty unless <paramref name="allowEmpty"/>; each entry must hold more than spaces
+        /// unless <paramref name="blankEntries"/>.
+        /// </summary>
+        public List<string> Texts(string key, bool allowEmpty = false, bool blankEntries = false)
         {
             var list = new List<string>();
             var value = Take(key, JsonKind.Array, "an array of text");
@@ -159,7 +162,7 @@ namespace Unity.ProjectVania.Core.Settings
                 {
                     Fail(key, item, $"must hold only text (has {Describe(item)})");
                 }
-                else if (item.Text.Trim().Length == 0)
+                else if (!blankEntries && item.Text.Trim().Length == 0)
                 {
                     Fail(key, item, "must not hold an empty entry");
                 }

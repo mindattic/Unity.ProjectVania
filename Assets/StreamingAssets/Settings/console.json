@@ -1,5 +1,5 @@
 {
-  "_source": "Console.cs, CheckInput_Console and ScriptManager.cs (RECONSTRUCTION 10).",
+  "_source": "Console.cs, CheckInput_Console and ScriptManager.cs (RECONSTRUCTION 10). The panel starts at startY (minus its height) and is drawn with texture at textureAlpha; colours are the words console text|history <word> accept, backgrounds the words console bg <word> accepts. script holds every text and colour the script writes; banner line i goes to History[i]; the usage lines replace the original's crash on a too-short console text|history|bg or commander (BIBLE defect 11).",
   "height": 200,
   "fullHeight": 600,
   "textureAlpha": 0.75,
@@ -25,5 +25,68 @@
   "historyColour": "LightGray",
   "promptColour": "Yellow",
   "longCue": "machine_1",
-  "shortCue": "machine_1_short"
+  "shortCue": "machine_1_short",
+  "fontPoints": 10,
+  "texture": "console1",
+  "colours": [
+    {
+      "word": "red",
+      "colour": "Red"
+    },
+    {
+      "word": "white",
+      "colour": "White"
+    },
+    {
+      "word": "blue",
+      "colour": "Blue"
+    },
+    {
+      "word": "yellow",
+      "colour": "Yellow"
+    },
+    {
+      "word": "green",
+      "colour": "Green"
+    },
+    {
+      "word": "black",
+      "colour": "Black"
+    }
+  ],
+  "backgrounds": [
+    {
+      "word": "red",
+      "texture": "red"
+    }
+  ],
+  "script": {
+    "hello": "Hello!",
+    "helloColour": "Wheat",
+    "quote": "''",
+    "yellEnd": "!",
+    "sayColour": "Yellow",
+    "yellColour": "Red",
+    "musicPaused": "Music Paused",
+    "musicUnpaused": "Music Unpaused",
+    "mutePrefix": "Mute: ",
+    "on": "On",
+    "off": "Off",
+    "noticeColour": "LightSteelBlue",
+    "banner": [
+      " <3  <3  <3  <3  <3  <3  <3 ",
+      "",
+      "|___   |___    |___     * ",
+      "|        |         |           | ",
+      "|        |----     |----       | ",
+      "|        |         |           | ",
+      "|        |-------  |-------    | ",
+      "",
+      " <3  <3  <3  <3  <3  <3  <3 "
+    ],
+    "usageConsoleText": "usage: console text <red|white|blue|yellow|green|black>",
+    "usageConsoleHistory": "usage: console history <red|white|blue|yellow|green|black>",
+    "usageConsoleBg": "usage: console bg <red>",
+    "usageCommander": "usage: commander <attribute> <x|y> <value>"
+  }
 }

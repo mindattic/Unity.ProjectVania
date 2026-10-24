@@ -73,11 +73,18 @@ namespace Unity.ProjectVania.Tests
         {
             Press(_pad.selectButton);
             _host.Tick(Step);
-            Assert.That(_host.World.State, Is.EqualTo(GameState.Console));
+            Assert.That(_host.World.ConsoleOpen, Is.True);
             Release(_pad.selectButton);
+            while (_host.World.Console.Sliding)
+            {
+                _host.Tick(Step); // the state changes as the slide ends (RECONSTRUCTION 10.1)
+            }
+
+            Assert.That(_host.World.State, Is.EqualTo(GameState.Console));
             Press(_keyboard.backquoteKey);
             _host.Tick(Step);
             Assert.That(_host.World.State, Is.EqualTo(GameState.Play));
+            Assert.That(_host.World.ConsoleOpen, Is.False);
         }
 
         [Test]

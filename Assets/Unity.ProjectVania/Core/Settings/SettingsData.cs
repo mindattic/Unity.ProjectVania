@@ -38,6 +38,31 @@ namespace Unity.ProjectVania.Core.Settings
         LightGray,
         Yellow,
         Red,
+        Blue,
+        Green,
+        Black,
+        Wheat,
+        LightSteelBlue,
+    }
+
+    /// <summary>The XNA <c>Color</c> each <see cref="SettingsColour"/> names, opaque.</summary>
+    public static class SettingsColours
+    {
+        public static Rgba ToRgba(this SettingsColour colour)
+        {
+            switch (colour)
+            {
+                case SettingsColour.LightGray: return new Rgba(211, 211, 211, 255);
+                case SettingsColour.Yellow: return new Rgba(255, 255, 0, 255);
+                case SettingsColour.Red: return new Rgba(255, 0, 0, 255);
+                case SettingsColour.Blue: return new Rgba(0, 0, 255, 255);
+                case SettingsColour.Green: return new Rgba(0, 128, 0, 255);
+                case SettingsColour.Black: return new Rgba(0, 0, 0, 255);
+                case SettingsColour.Wheat: return new Rgba(245, 222, 179, 255);
+                case SettingsColour.LightSteelBlue: return new Rgba(176, 196, 222, 255);
+                default: return Rgba.White;
+            }
+        }
     }
 
     public enum MenuAction
@@ -541,6 +566,49 @@ namespace Unity.ProjectVania.Core.Settings
         public string LongCue { get; private set; }
         public string ShortCue { get; private set; }
 
+        /// <summary>Arial_10.spritefont's size, in points (every console text is written in it).</summary>
+        public float FontPoints { get; private set; }
+
+        /// <summary>The panel's texture at start (<c>GuiItem("console1", ...)</c>).</summary>
+        public string Texture { get; private set; }
+
+        /// <summary>The words <c>console text|history &lt;colour&gt;</c> accept and the XNA colour each sets.</summary>
+        public IReadOnlyList<ConsoleWord<SettingsColour>> Colours { get; private set; }
+
+        /// <summary>The words <c>console bg &lt;word&gt;</c> accepts and the texture each sets (only <c>red</c> in the original).</summary>
+        public IReadOnlyList<ConsoleWord<string>> Backgrounds { get; private set; }
+
+        /// <summary>The script's texts and colours (<c>ScriptManager.ExecuteScript</c>).</summary>
+        public ConsoleScriptData Script { get; private set; }
+
+        public bool TryColour(string word, out SettingsColour colour)
+        {
+            foreach (var entry in Colours)
+            {
+                if (entry.Word == word)
+                {
+                    colour = entry.Value;
+                    return true;
+                }
+            }
+
+            colour = default;
+            return false;
+        }
+
+        public string FindBackground(string word)
+        {
+            foreach (var entry in Backgrounds)
+            {
+                if (entry.Word == word)
+                {
+                    return entry.Value;
+                }
+            }
+
+            return null;
+        }
+
         internal static ConsoleData Read(SettingsReader r)
         {
             var data = new ConsoleData
@@ -571,10 +639,98 @@ namespace Unity.ProjectVania.Core.Settings
                 PromptColour = r.Choice<SettingsColour>("promptColour"),
                 LongCue = r.Text("longCue"),
                 ShortCue = r.Text("shortCue"),
+                FontPoints = r.Positive("fontPoints"),
+                Texture = r.Text("texture"),
+                Colours = r.Each("colours", c => new ConsoleWord<SettingsColour>(c.Text("word"), c.Choice<SettingsColour>("colour"))),
+                Backgrounds = r.Each("backgrounds", b => new ConsoleWord<string>(b.Text("word"), b.Text("texture"))),
+                Script = r.Section("script", ConsoleScriptData.Read),
             };
             r.Check(data.FullHeight > data.Height, "fullHeight", "must be taller than the console's height");
+            CheckWords(r, "colours", data.Colours);
+            CheckWords(r, "backgrounds", data.Backgrounds);
+            r.Check(data.Script == null || data.Script.Banner.Count <= data.HistoryLines, "script", "banner has more lines than the history");
             return data;
         }
+
+        static void CheckWords<T>(SettingsReader r, string key, IReadOnlyList<ConsoleWord<T>> words)
+        {
+            var seen = new HashSet<string>();
+            foreach (var word in words)
+            {
+                r.Check(seen.Add(word.Word), key, $"lists '{word.Word}' twice");
+                r.Check(word.Word == word.Word.ToLowerInvariant() && word.Word.IndexOf(' ') < 0, key, $"'{word.Word}' must be one lower-case word (the script lower-cases the line and splits it on spaces)");
+            }
+        }
+    }
+
+    /// <summary>A script word and what it stands for.</summary>
+    public sealed class ConsoleWord<T>
+    {
+        public ConsoleWord(string word, T value)
+        {
+            Word = word;
+            Value = value;
+        }
+
+        public string Word { get; }
+        public T Value { get; }
+    }
+
+    /// <summary>console.json script: the texts and colours <c>ScriptManager.ExecuteScript</c> writes (RECONSTRUCTION 10.3).</summary>
+    public sealed class ConsoleScriptData
+    {
+        /// <summary><c>msg hi</c>'s message and colour ("Hello!", Wheat).</summary>
+        public string Hello { get; private set; }
+        public SettingsColour HelloColour { get; private set; }
+
+        /// <summary>What <c>say</c> and <c>yell</c> wrap their words in (two apostrophes).</summary>
+        public string Quote { get; private set; }
+
+        /// <summary>What <c>yell</c> adds before the closing quote ("!").</summary>
+        public string YellEnd { get; private set; }
+        public SettingsColour SayColour { get; private set; }
+        public SettingsColour YellColour { get; private set; }
+
+        public string MusicPaused { get; private set; }
+        public string MusicUnpaused { get; private set; }
+
+        /// <summary><c>"Mute: " + g.OnOff(Muted)</c>.</summary>
+        public string MutePrefix { get; private set; }
+        public string On { get; private set; }
+        public string Off { get; private set; }
+
+        /// <summary>The pause and mute messages' colour (LightSteelBlue).</summary>
+        public SettingsColour NoticeColour { get; private set; }
+
+        /// <summary><c>lee</c> / <c>buzzer</c>'s banner: line i is written to History[i].</summary>
+        public IReadOnlyList<string> Banner { get; private set; }
+
+        /// <summary>The line a too-short <c>console text|history|bg</c> or <c>commander</c> writes instead of crashing (BIBLE defect 11, fixed).</summary>
+        public string UsageConsoleText { get; private set; }
+        public string UsageConsoleHistory { get; private set; }
+        public string UsageConsoleBg { get; private set; }
+        public string UsageCommander { get; private set; }
+
+        internal static ConsoleScriptData Read(SettingsReader r) => new ConsoleScriptData
+        {
+            Hello = r.Text("hello"),
+            HelloColour = r.Choice<SettingsColour>("helloColour"),
+            Quote = r.Text("quote"),
+            YellEnd = r.Text("yellEnd"),
+            SayColour = r.Choice<SettingsColour>("sayColour"),
+            YellColour = r.Choice<SettingsColour>("yellColour"),
+            MusicPaused = r.Text("musicPaused"),
+            MusicUnpaused = r.Text("musicUnpaused"),
+            MutePrefix = r.Text("mutePrefix"),
+            On = r.Text("on"),
+            Off = r.Text("off"),
+            NoticeColour = r.Choice<SettingsColour>("noticeColour"),
+            Banner = r.Texts("banner", blankEntries: true),
+            UsageConsoleText = r.Text("usageConsoleText"),
+            UsageConsoleHistory = r.Text("usageConsoleHistory"),
+            UsageConsoleBg = r.Text("usageConsoleBg"),
+            UsageCommander = r.Text("usageCommander"),
+        };
     }
 
     /// <summary>audio.json: the cue table, categories and songs (RECONSTRUCTION 11).</summary>
