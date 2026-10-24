@@ -1,0 +1,21 @@
+{
+  "_source": "Map.cs and GridCell.cs (RECONSTRUCTION 5): a 1900 x 1200 map of 16 px cells, and SpawnBridge(), the one authored level. Pixels, y down; the Runtime converts at units.pixelsPerUnit.",
+  "cellSize": 16,
+  "mapWidth": 1900,
+  "mapHeight": 1200,
+  "freshCellAlpha": 64,
+  "freshCellAssetBounds": [0, 0, 16, 16],
+  "tilesetAsset": "tileset_default",
+  "bridge": {
+    "_about": "SpawnBridge(): every cell of the floor row and of each wall column is Hard, white and opaque, with the second tile of the tileset's top row. Walls run all rows; the floor runs all columns.",
+    "floorRow": 30,
+    "wallColumns": [20, 40],
+    "tileBounds": [16, 0, 16, 16]
+  },
+  "units": {
+    "_about": "The one place the original's pixels and frames meet the Runtime's units (BIBLE: one grid cell is one unit; the simulation steps at 60 Hz).",
+    "pixelsPerUnit": 16,
+    "stepsPerSecond": 60
+  },
+  "referenceScreen": [800, 600]
+}

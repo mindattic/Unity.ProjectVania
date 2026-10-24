@@ -1,0 +1,56 @@
+{
+  "_source": "Gui/MainMenu (RECONSTRUCTION 9.2). Level 0 is the root; its parent -1 closes the menu. An item's action is one of Open (go to the level in target), None, Quit, ToggleFullscreen. Levels 3 and 4 exist in the original and are unreachable; kept as data.",
+  "background": "menu1",
+  "backgroundAlpha": 0.8,
+  "arrow": "arrow1",
+  "arrowOffset": -18,
+  "itemX": 50,
+  "itemY": 100,
+  "itemStep": 50,
+  "titlePosition": [10, 15],
+  "descriptionFromBottom": 20,
+  "itemColour": "Yellow",
+  "selectedColour": "Red",
+  "textColour": "White",
+  "moveCue": "menu_move",
+  "selectCue": "menu_select",
+  "levels": [
+    {
+      "title": "Main Menu",
+      "parent": -1,
+      "items": [
+        { "text": "Game", "description": "Game : Change various game settings", "action": "Open", "target": 1 },
+        { "text": "Video", "description": "Video : Change video settings", "action": "Open", "target": 2 },
+        { "text": "Audio", "description": "Audio : Change audio settings", "action": "None", "target": -1 },
+        { "text": "Controls", "description": "Controls : Change game controls", "action": "None", "target": -1 },
+        { "text": "Quit", "description": "Quit : Quit game", "action": "Quit", "target": -1 }
+      ]
+    },
+    {
+      "title": "Main Menu : Game",
+      "parent": 0,
+      "items": [
+        { "text": "1-0", "description": "", "action": "None", "target": -1 },
+        { "text": "1-1", "description": "", "action": "None", "target": -1 }
+      ]
+    },
+    {
+      "title": "Main Menu : Video",
+      "parent": 0,
+      "items": [
+        { "text": "Toggle Fullscreen", "description": "Toggle Fullscreen : Switch between Fullscreen and Windowed mode", "action": "ToggleFullscreen", "target": -1 },
+        { "text": "2-1", "description": "", "action": "None", "target": -1 }
+      ]
+    },
+    {
+      "title": "Controls : Change game controls",
+      "parent": 0,
+      "items": []
+    },
+    {
+      "title": "Quit : Quit game",
+      "parent": 0,
+      "items": []
+    }
+  ]
+}

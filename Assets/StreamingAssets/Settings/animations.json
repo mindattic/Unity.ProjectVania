@@ -1,0 +1,32 @@
+{
+  "_source": "The animation table (RECONSTRUCTION 4.8): per sheet, each strip's PNG width (frameSize high), frame count, seconds per frame and whether it loops. Frame count is width / frameSize, truncated (Leo's run is 257 wide: 4 frames).",
+  "frameSize": 64,
+  "sheets": [
+    {
+      "sheet": "morris",
+      "animations": [
+        { "name": "idle", "width": 256, "frames": 4, "frameTime": 1.0, "loop": true },
+        { "name": "run", "width": 960, "frames": 15, "frameTime": 0.05, "loop": true },
+        { "name": "jump", "width": 192, "frames": 3, "frameTime": 0.2, "loop": false },
+        { "name": "fall", "width": 64, "frames": 1, "frameTime": 1.0, "loop": true },
+        { "name": "wallslide", "width": 64, "frames": 1, "frameTime": 0.07, "loop": true },
+        { "name": "kneel", "width": 256, "frames": 4, "frameTime": 0.07, "loop": false },
+        { "name": "slide", "width": 256, "frames": 4, "frameTime": 0.07, "loop": false }
+      ]
+    },
+    {
+      "sheet": "shanoa",
+      "animations": [
+        { "name": "idle", "width": 640, "frames": 10, "frameTime": 0.1, "loop": true },
+        { "name": "run", "width": 640, "frames": 10, "frameTime": 0.1, "loop": true }
+      ]
+    },
+    {
+      "sheet": "leo",
+      "animations": [
+        { "name": "idle", "width": 256, "frames": 4, "frameTime": 0.1, "loop": true },
+        { "name": "run", "width": 257, "frames": 4, "frameTime": 0.1, "loop": true }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "_source": "AudioManager.cs and the XACT project (RECONSTRUCTION 11). Volumes are hundredths of a dB as XACT stored them; loop is the instance count XACT used (255 = infinite). playedBy is a note for people; the footstep clips' lengths were not recorded and are left at 0.",
+  "volume": 1.0,
+  "muted": false,
+  "categories": [
+    { "name": "Global", "maxInstances": 255 },
+    { "name": "Default", "maxInstances": 255 },
+    { "name": "Music", "maxInstances": 255 },
+    { "name": "Sfx", "maxInstances": 255 },
+    { "name": "Ambience", "maxInstances": 255 }
+  ],
+  "cues": [
+    { "bank": "music", "cue": "music1", "wave": "music1", "seconds": 64.5, "volume": -1200, "loop": 255, "playedBy": "never" },
+    { "bank": "sfx", "cue": "footstep_1", "wave": "footstep_1", "seconds": 0, "volume": -2000, "loop": 0, "playedBy": "never" },
+    { "bank": "sfx", "cue": "footstep_2", "wave": "footstep_2", "seconds": 0, "volume": -2000, "loop": 0, "playedBy": "never" },
+    { "bank": "sfx", "cue": "drag", "wave": "drag", "seconds": 0.26, "volume": -1200, "loop": 0, "playedBy": "wall slide, every frame" },
+    { "bank": "sfx", "cue": "step1", "wave": "step1", "seconds": 1.0, "volume": -1200, "loop": 0, "playedBy": "never" },
+    { "bank": "sfx", "cue": "jump1", "wave": "jump1", "seconds": 0.67, "volume": -1200, "loop": 0, "playedBy": "commented out" },
+    { "bank": "sfx", "cue": "step2", "wave": "step2", "seconds": 0.43, "volume": -1200, "loop": 0, "playedBy": "running, every frame" },
+    { "bank": "ambience", "cue": "machine_1", "wave": "machine_1", "seconds": 1.2, "volume": 0, "loop": 0, "playedBy": "console toggle" },
+    { "bank": "ambience", "cue": "machine_1_short", "wave": "machine_1_short", "seconds": 0.6, "volume": 0, "loop": 0, "playedBy": "console toggle" },
+    { "bank": "ambience", "cue": "menu_open", "wave": "menu_open", "seconds": 0.84, "volume": 0, "loop": 0, "playedBy": "menu" },
+    { "bank": "ambience", "cue": "menu_close", "wave": "menu_close", "seconds": 0.73, "volume": 0, "loop": 0, "playedBy": "menu" },
+    { "bank": "ambience", "cue": "menu_move", "wave": "menu_move", "seconds": 0.22, "volume": 0, "loop": 0, "playedBy": "menu" },
+    { "bank": "ambience", "cue": "menu_select", "wave": "menu_select", "seconds": 0.87, "volume": 0, "loop": 0, "playedBy": "menu" }
+  ],
+  "songs": [
+    { "name": "music", "file": "music.mp3", "playedBy": "console: play music" },
+    { "name": "battle", "file": "battle.mp3", "playedBy": "console: play battle" }
+  ]
+}

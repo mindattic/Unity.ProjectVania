@@ -1,0 +1,32 @@
+{
+  "_source": "CharacterSheet and UnitSize (RECONSTRUCTION 4.1, 4.8). Owner decision 2026-10-23: Shanoa and Leo are playable as well as Morris (built by U.VAN-T25); in the original only Morris was, the others by editing a field. A move set lists the actions a character can perform.",
+  "defaultCharacter": "Morris",
+  "characters": [
+    {
+      "name": "Morris",
+      "sheet": "morris",
+      "unitSize": [1, 3],
+      "playable": true,
+      "gender": "Male",
+      "moveSet": ["Standing", "Running", "Kneeling", "Sliding", "Jumping", "WallSliding", "Falling"]
+    },
+    {
+      "name": "Shanoa",
+      "sheet": "shanoa",
+      "unitSize": [1, 3],
+      "playable": true,
+      "gender": "Female",
+      "_about": "The sheet has only idle and run, so U.VAN-T25 needs art or stand-ins for the rest of the move set.",
+      "moveSet": ["Standing", "Running", "Kneeling", "Sliding", "Jumping", "WallSliding", "Falling"]
+    },
+    {
+      "name": "Leo",
+      "sheet": "leo",
+      "unitSize": [1, 2],
+      "playable": true,
+      "gender": "Male",
+      "_about": "The sheet has only idle and run; see Shanoa.",
+      "moveSet": ["Standing", "Running", "Kneeling", "Sliding", "Jumping", "WallSliding", "Falling"]
+    }
+  ]
+}

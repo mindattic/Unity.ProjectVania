@@ -1,0 +1,16 @@
+{
+  "_source": "CameraManager.cs (RECONSTRUCTION 7). Position is the negative of the world point at the screen centre.",
+  "initialPosition": [1, 1],
+  "initialRotation": 0,
+  "initialScale": 1,
+  "initialMode": "LoosePlayer",
+  "modeCycle": ["Free", "LockPlayer", "LoosePlayer", "LooseCursor"],
+  "followGain": 0.02,
+  "snapBelow": 0.01,
+  "damping": 0.7,
+  "scrollStep": 1,
+  "editorScrollSteps": [2, 4],
+  "zoomStep": 0.01,
+  "rotateStep": 0.01,
+  "scaleExponent": 3
+}

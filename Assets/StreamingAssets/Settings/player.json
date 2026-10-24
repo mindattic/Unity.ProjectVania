@@ -1,0 +1,46 @@
+{
+  "_source": "Player.cs constants (RECONSTRUCTION 4.2), in the original's own units: pixels, pixels per second, and per frame where the original added a figure each frame. Morris, Leo and Shanoa share them.",
+  "moveAcceleration": 14000,
+  "maxMoveSpeed": 200,
+  "groundDragFactor": 0.58,
+  "airDragFactor": 0.65,
+  "maxJumpTime": 0.6,
+  "jumpLaunchVelocity": -1100,
+  "jumpControlPower": 0.14,
+  "gravityAcceleration": 10,
+  "maxFallSpeed": 500,
+  "wallSlideSpeedDivisor": 6,
+  "wallSlideDecay": 0.97,
+  "maxWallSlideTime": 1.0,
+  "fallDamageTime": 3.0,
+  "maxWalljumpDelayTime": 0.5,
+  "maxLockOutTime": 0.5,
+  "slideLaunchAcceleration": 14000,
+  "slideFriction": 0.7,
+  "slideUnitSize": [3, 1],
+  "spawn": {
+    "_about": "SceneManager.LoadContent creates two players; Reset (R) puts every player back at the reset position (4.9: both go to 500,100 in the original).",
+    "positions": [[500, 100], [550, 100]],
+    "resetPosition": [500, 100]
+  },
+  "abilities": {
+    "_about": "AbilityList.cs (4.1). Run, Slide, SinkInWater and BulletTime are never read in the original.",
+    "run": true,
+    "jump": true,
+    "kneel": true,
+    "wallSlide": true,
+    "wallJump": true,
+    "slide": true,
+    "sinkInWater": false,
+    "bulletTime": false
+  },
+  "kneel": {
+    "_about": "Owner decision 2026-10-23 (BIBLE defect 3, built by U.VAN-T23): releasing the kneel stands the character up. The original never did.",
+    "releaseStandsUp": true
+  },
+  "wallJump": {
+    "_about": "Owner decision 2026-10-23 (BIBLE defect 6, built by U.VAN-T24): a wall jump pushes the character off the wall at once. The original only climbed along it (4.7). pushSpeed is a data slot in pixels per second away from the wall; U.VAN-T24 tunes it in play, 200 (the run cap) is a starting value.",
+    "pushOff": true,
+    "pushSpeed": 200
+  }
+}

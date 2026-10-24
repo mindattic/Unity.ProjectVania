@@ -1,0 +1,19 @@
+{
+  "_source": "Content/maps.zdx (RECONSTRUCTION 5.1): eleven definitions on source image 1 (maps1.png, 1024 x 1024). rect is x0 y0 x1 y1, the rectangle's corners; width and height are differences. Parsed and unused in the original, kept as data.",
+  "sources": [
+    { "id": 1, "image": "maps1.png", "size": [1024, 1024] }
+  ],
+  "definitions": [
+    { "name": "grass1", "source": 1, "rect": [0, 26, 410, 178], "flag": 0 },
+    { "name": "grass2", "source": 1, "rect": [0, 178, 404, 369], "flag": 0 },
+    { "name": "grass3", "source": 1, "rect": [0, 369, 411, 564], "flag": 0 },
+    { "name": "rock1", "source": 1, "rect": [423, 28, 511, 93], "flag": 0 },
+    { "name": "rock2", "source": 1, "rect": [438, 92, 491, 137], "flag": 0 },
+    { "name": "grave1", "source": 1, "rect": [432, 140, 503, 220], "flag": 0 },
+    { "name": "grave2", "source": 1, "rect": [430, 220, 499, 292], "flag": 0 },
+    { "name": "block1", "source": 1, "rect": [512, 0, 611, 93], "flag": 0 },
+    { "name": "block2", "source": 1, "rect": [514, 93, 676, 187], "flag": 0 },
+    { "name": "blackbox", "source": 1, "rect": [16, 570, 378, 796], "flag": 0 },
+    { "name": "torch", "source": 1, "rect": [437, 300, 479, 409], "flag": 1 }
+  ]
+}
