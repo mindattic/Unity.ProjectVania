@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.ProjectVania.Core.Simulation;
 
 namespace Unity.ProjectVania.Core.Settings
 {
@@ -27,6 +28,15 @@ namespace Unity.ProjectVania.Core.Settings
         LockPlayer,
         LoosePlayer,
         LooseCursor,
+    }
+
+    /// <summary>The XNA named colours the original used for text.</summary>
+    public enum SettingsColour
+    {
+        White,
+        LightGray,
+        Yellow,
+        Red,
     }
 
     public enum MenuAction
@@ -341,6 +351,8 @@ namespace Unity.ProjectVania.Core.Settings
             data.PixelsPerUnit = units.Ppu;
             data.StepsPerSecond = units.Steps;
             data.ReferenceScreen = r.Pair("referenceScreen", 1f);
+            r.Check(data.PixelsPerUnit == data.CellSize, "units", "pixelsPerUnit must equal cellSize (one grid cell is one unit)");
+            r.Check(data.StepsPerSecond == FixedStepper.StepsPerSecond, "units", $"stepsPerSecond must equal the stepper's {FixedStepper.StepsPerSecond}");
             r.Check(data.MapWidth >= data.CellSize && data.MapHeight >= data.CellSize, "cellSize", "must fit inside the map");
             r.Check(data.CellSize <= 0 || data.FloorRow < data.MapHeight / data.CellSize, "bridge", "floorRow is outside the grid");
             foreach (var column in data.WallColumns)
@@ -416,9 +428,9 @@ namespace Unity.ProjectVania.Core.Settings
         public string Prompt { get; private set; }
         public string Caret { get; private set; }
         public string Version { get; private set; }
-        public string TextColour { get; private set; }
-        public string HistoryColour { get; private set; }
-        public string PromptColour { get; private set; }
+        public SettingsColour TextColour { get; private set; }
+        public SettingsColour HistoryColour { get; private set; }
+        public SettingsColour PromptColour { get; private set; }
         public string LongCue { get; private set; }
         public string ShortCue { get; private set; }
 
@@ -447,9 +459,9 @@ namespace Unity.ProjectVania.Core.Settings
                 Prompt = r.Text("prompt"),
                 Caret = r.Text("caret"),
                 Version = r.Text("version"),
-                TextColour = r.Text("textColour"),
-                HistoryColour = r.Text("historyColour"),
-                PromptColour = r.Text("promptColour"),
+                TextColour = r.Choice<SettingsColour>("textColour"),
+                HistoryColour = r.Choice<SettingsColour>("historyColour"),
+                PromptColour = r.Choice<SettingsColour>("promptColour"),
                 LongCue = r.Text("longCue"),
                 ShortCue = r.Text("shortCue"),
             };
@@ -561,9 +573,9 @@ namespace Unity.ProjectVania.Core.Settings
         public int ItemStep { get; private set; }
         public Pair TitlePosition { get; private set; }
         public int DescriptionFromBottom { get; private set; }
-        public string ItemColour { get; private set; }
-        public string SelectedColour { get; private set; }
-        public string TextColour { get; private set; }
+        public SettingsColour ItemColour { get; private set; }
+        public SettingsColour SelectedColour { get; private set; }
+        public SettingsColour TextColour { get; private set; }
         public string MoveCue { get; private set; }
         public string SelectCue { get; private set; }
         public IReadOnlyList<MenuLevel> Levels { get; private set; }
@@ -581,9 +593,9 @@ namespace Unity.ProjectVania.Core.Settings
                 ItemStep = r.Integer("itemStep", 1, 1000),
                 TitlePosition = r.Pair("titlePosition", 0f),
                 DescriptionFromBottom = r.Integer("descriptionFromBottom", 0, 10000),
-                ItemColour = r.Text("itemColour"),
-                SelectedColour = r.Text("selectedColour"),
-                TextColour = r.Text("textColour"),
+                ItemColour = r.Choice<SettingsColour>("itemColour"),
+                SelectedColour = r.Choice<SettingsColour>("selectedColour"),
+                TextColour = r.Choice<SettingsColour>("textColour"),
                 MoveCue = r.Text("moveCue"),
                 SelectCue = r.Text("selectCue"),
                 Levels = r.Each("levels", MenuLevel.Read),
@@ -598,6 +610,15 @@ namespace Unity.ProjectVania.Core.Settings
                 var level = data.Levels[i];
                 r.Check(i == 0 || (level.Parent >= 0 && level.Parent < data.Levels.Count && level.Parent != i), "levels",
                     $"level {i} ('{level.Title}') has parent {level.Parent}, which is not another level");
+                var walk = i;
+                var steps = 0;
+                while (walk > 0 && steps++ <= data.Levels.Count)
+                {
+                    var parent = data.Levels[walk].Parent;
+                    walk = parent >= 0 && parent < data.Levels.Count ? parent : 0;
+                }
+
+                r.Check(walk == 0, "levels", $"level {i} ('{level.Title}') never reaches the root by its parents");
                 foreach (var item in level.Items)
                 {
                     r.Check(item.Action != MenuAction.Open || (item.Target >= 0 && item.Target < data.Levels.Count), "levels",
@@ -707,11 +728,15 @@ namespace Unity.ProjectVania.Core.Settings
                 Source = r.Integer("source", 1, 1000),
                 Flag = r.Integer("flag", 0, 1000),
             };
-            var rect = r.Quad("rect", 0f);
-            d.X0 = (int)rect[0];
-            d.Y0 = (int)rect[1];
-            d.X1 = (int)rect[2];
-            d.Y1 = (int)rect[3];
+            var rect = r.Integers("rect", 0, 100000);
+            r.Check(rect.Count == 4, "rect", "must hold exactly four whole numbers");
+            if (rect.Count == 4)
+            {
+                d.X0 = rect[0];
+                d.Y0 = rect[1];
+                d.X1 = rect[2];
+                d.Y1 = rect[3];
+            }
             return d;
         }
     }

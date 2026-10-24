@@ -191,6 +191,7 @@ namespace Unity.ProjectVania.Core.Tests
             var names = Load().Names;
             Assert.That(names.Male.Count, Is.EqualTo(1219));
             Assert.That(names.Female.Count, Is.EqualTo(4073));
+            Assert.That(names.Female[names.Female.Count - 1], Is.EqualTo("Vanna"));
             Assert.That(names.Beast.Count, Is.EqualTo(15));
             Assert.That(names.Male[names.Male.Count - 1], Is.EqualTo("Zane"));
             Assert.That(names.For(Gender.Female), Is.SameAs(names.Female));
@@ -277,6 +278,38 @@ namespace Unity.ProjectVania.Core.Tests
         {
             var e = LoadFails(Patched(GameSettings.PlayerFile, t => t.Replace("[[500, 100], [550, 100]]", "[[5000, 100], [550, 100]]")));
             Assert.That(e.Errors.Single(), Does.Contain("outside"));
+        }
+
+        [Test]
+        public void MenuParentLoop_IsRejected()
+        {
+            var e = LoadFails(Patched(GameSettings.MenuFile, t =>
+            {
+                var text = t.Replace("\"title\": \"Main Menu : Game\",\n      \"parent\": 0", "\"title\": \"Main Menu : Game\",\n      \"parent\": 2");
+                return text.Replace("\"title\": \"Main Menu : Video\",\n      \"parent\": 0", "\"title\": \"Main Menu : Video\",\n      \"parent\": 1");
+            }));
+            Assert.That(e.Errors.Any(m => m.Contains("never reaches the root")));
+        }
+
+        [Test]
+        public void FractionalSegmentRect_IsRejected()
+        {
+            var e = LoadFails(Patched(GameSettings.SegmentsFile, t => t.Replace("[437, 300, 479, 409]", "[437, 300, 479, 409.5]")));
+            Assert.That(e.Errors.Any(m => m.Contains("whole number")));
+        }
+
+        [Test]
+        public void MistypedColour_IsRejected()
+        {
+            var e = LoadFails(Patched(GameSettings.ConsoleFile, t => t.Replace("LightGray", "LightGrey")));
+            Assert.That(e.Errors.Single(), Does.Contain("'historyColour'"));
+        }
+
+        [Test]
+        public void UnitsThatDisagreeWithTheGridOrStepper_AreRejected()
+        {
+            Assert.That(LoadFails(Patched(GameSettings.GridFile, t => t.Replace("\"pixelsPerUnit\": 16", "\"pixelsPerUnit\": 32"))).Errors.Single(), Does.Contain("pixelsPerUnit"));
+            Assert.That(LoadFails(Patched(GameSettings.GridFile, t => t.Replace("\"stepsPerSecond\": 60", "\"stepsPerSecond\": 30"))).Errors.Single(), Does.Contain("stepsPerSecond"));
         }
     }
 }

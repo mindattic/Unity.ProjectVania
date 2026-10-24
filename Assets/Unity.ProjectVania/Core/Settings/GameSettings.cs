@@ -175,7 +175,7 @@ namespace Unity.ProjectVania.Core.Settings
 
         private static void CheckInMap(List<string> errors, Pair position, int width, int height, string what)
         {
-            if (position.X > width || position.Y > height)
+            if (position.X >= width || position.Y >= height)
             {
                 errors.Add($"{PlayerFile}: {what} ({position.X}, {position.Y}) is outside the {width} x {height} map");
             }
