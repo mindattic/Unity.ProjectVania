@@ -37,7 +37,7 @@ namespace Unity.ProjectVania
             // Both spawned characters are the default one, each with a fresh random name, as the original's two Morrises.
             var character = settings.Characters.Find(settings.Characters.DefaultCharacter);
             World = new GameWorld(Map.FromSettings(settings.Grid), settings.Player, character, settings.Names, new System.Random(), settings.Camera, settings.Menu,
-                settings.Console, settings.Audio);
+                settings.Console, settings.Audio, settings.Hud);
             Device?.Dispose();
             Device = new InputSystemDevice(settings.Input.StickPressPoint);
             Input = new PlayerInput(PlayerId.One, settings.Input, Device);
@@ -64,8 +64,8 @@ namespace Unity.ProjectVania
         }
 
         /// <summary>
-        /// Plays what the world's steps produced: the window mode, the cues, the exit. The script's messages, fade and
-        /// songs are named as events for the HUD (A12) and audio (A13) stories to show and play.
+        /// Plays what the world's steps produced: the window mode, the cues, the exit. The script's messages and fade are
+        /// kept by the world's HUD and drawn from its state (A12); its songs are named as events for the audio story (A13).
         /// </summary>
         public void Present(System.Collections.Generic.IReadOnlyList<Core.Commands.IGameEvent> events)
         {

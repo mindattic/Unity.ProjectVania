@@ -504,7 +504,8 @@ cursor), then the console, then the debug text, then the message stack.
 ### 9.1 Always-on HUD
 
 - **Portrait** (`Portrait`): at `(0, H - 110)`, 99x110, three layers in order glass
-  (`portrait_glass`, alpha 0.4), photo (`portrait_1`, 84x94, alpha 1), frame (`portrait_frame`).
+  (`portrait_glass`, alpha 0.4), photo (`portrait_1`, 84x94 stretched to the same 99x110 rectangle, alpha 1),
+  frame (`portrait_frame`).
   Static: the photo never changes with the selected player. The other six portraits
   (`portrait_archer/paladin/priest/rogue/soldier/wizard`) are loaded and unused.
 - **Quick bar** (`QuickBar`): glass (alpha 0.4) and frame (`quick_bar_glass/frame`, 261x105) at
@@ -517,8 +518,10 @@ cursor), then the console, then the debug text, then the message stack.
 - **Debug text** (Arial 10, white, drawn every frame in every state):
   `Name\nX, Y\ncellX, cellY` of the current player at (100,100); `Mode: <CameraMode>\ncamX, camY` at
   (300,100); the GUI cursor position at (600,100) (written twice in the same place); `Coords:` + the
-  editor's selected cell at (700,100); the frame rate `1 / dt` at `(W - 100, 10)`. (With a fixed
-  1/60 step it always reads 60.)
+  editor's selected cell at (700,100); the frame rate `1 / dt` at `(W - 100, 10)`. (With XNA's fixed
+  step of 166667 ticks it always reads `1 / 0.0166667f`, written "59.99988", U.VAN-T15.) Every number is a
+  float's `ToString()`, seven significant digits under .NET 3.5. The GUI cursor is `Cursor` in Screen mode,
+  updated every frame in every state: the mouse, clamped to `(0, 0) .. (W - 13, H - 18)`.
 - **Sun / daylight** (`World\Sun.cs`): intended day-night tint cycle: `PeriodOfDay {Day, Dusk, Night,
   Dawn}` with colours Day `(255,255,255,0)`, Dusk `(255,0,0,64)`, Night `(128,0,255,64)`, Dawn
   `(128,128,128,0)`, a 10 ms tick that ramps two alphas by 1 and advances the period, drawn as two
@@ -534,7 +537,12 @@ cursor), then the console, then the debug text, then the message stack.
   **drawn only while `Y > H/2 + 16`**, i.e. after the first 33 ticks (1.65 s), and lives 255 ticks
   (12.75 s). The constructor queues six test messages "test1".."test6" (Wheat), so they play out
   shortly after launch. `InvokeMessage` overwrites message 0's text and colour (used for the gamepad
-  connected notice). Messages are drawn with Arial 10 at their position.
+  connected notice), which makes it opaque again, and does nothing when no message is queued (its else branch
+  is commented out). Messages are drawn with Arial 10 at their position, left-aligned. The timer
+  (`+= 16.6667` ms a frame, as a float) only runs while a message is queued and passes 50 on every third
+  frame. `lastMessage` survives between ticks: when the message removed is the last in the list, the next
+  tick's first comparison reads past the end and throws, which happens once a gamepad notice has revived
+  the front message so that it outlives the rest (U.VAN-T15, replayed in a test).
 - **Lenses / fade** (`Lenses`): one full-screen lens `fade`, a 1x1 white texture stretched to W x H,
   tinted `(0,0,0,0)`. Every `Update` where the accumulated time exceeds 10 ms (every frame at 60 Hz),
   `CheckFade`: `Out` adds 1 to the alpha until 255 then sets state `Off`; `In` subtracts 1 until 0 then
@@ -776,6 +784,9 @@ Each is decided in the BIBLE: keep (it is the game's feel), fix, or drop.
     `Soopah.Xna.Input` library which is not here), `Cursor2D.cs`, `Managers\MapEditor.cs`.
 16. `CyclePlayerLeft/Right` only change `playerIndex`; the character switched away from keeps its `movement`, so one
     left mid-run keeps running (and wall sliding at a wall) with no one driving it (traced).
+17. `MessageHandler.Update`'s stale `lastMessage` throws once the last message in the list is removed, reachable after a
+    gamepad notice revives the front message (section 9.1).
+18. `InvokeMessage` drops the gamepad notice when no message is queued (section 9.1).
 
 ## 16. What the original does not have (so the rebuild must not invent it)
 

@@ -95,6 +95,8 @@ standard.
 | 14 | `icon_poisondart` loads the parry icon; `icon_consecrate` unloaded | **Fix** in the data: each icon is its own file |
 | 15 | Unused library code (`Quad`, `LinkedList`, `TileGrid`, `Event`...) and files outside the project | **Drop**: no behaviour to keep |
 | 16 | `[` / `]` leave the character switched away from with its `movement` held, so one switched away from mid-run runs on, undriven, for ever | **Fix** (U.VAN-T10): the character left behind lets go of its direction (`Cancel_Move`) as the switch happens, so the twin stands still as it was meant to |
+| 17 | The message stack keeps the index of the message that last moved across ticks; once a pad's notice has made the front message opaque again it outlives the rest, and when the last of them is removed the stale index points past the list and the game throws (U.VAN-T15, a test replays the original's crash) | **Fix**: the index is kept inside the list; nothing else about the stack changes |
+| 18 | `InvokeMessage` does nothing with no message queued (its "show the first message" branch is commented out), so the gamepad notice is lost once the start-up messages are gone | **Fix**: with nothing queued the notice is queued as a new message; hud.json's `messages.noticeWhenEmpty` is the slot |
 
 **Audio.** Music never starts by itself, as in the original; only `play music` / `play battle` start it
 (§11). The XACT banks become a cue table in data (name, clip, volume in dB, loop, category), and the
@@ -250,7 +252,8 @@ instead, and a test runs every combination of the language's words without a thr
 whatever it is told. The script's reach outside the console is events the world names and state it keeps: messages
 (`MessageRequested`, text and XNA colour) for A12's message stack, the fade (`Fade`, `FadeRequested`) for A12's lens, and
 songs (`SongRequested`, `MusicPauseChanged`, `MuteChanged`, `Music`; `EndSong` for the player to report a finished song)
-for A13; until those stories land, those lines change state and name events but nothing is shown or heard. Runtime's
+for A13; the messages and the fade are shown by A12's HUD (below), and until A13 lands the song lines change state and
+name events but nothing is heard. Runtime's
 `ConsoleView` draws it in the pixel-perfect panel after the menu, every frame: `console1` (608 x 203, bilinear, as it is
 stretched) over (0, Y, 800, height) at 0.75, then in the Console state only, in the Arial 10 equivalent (13 px), the
 yellow `>`, the line and the 100 history lines at the original's screen positions (not the panel's), in the console's two
@@ -266,10 +269,39 @@ per-sprite look can be restored with a sprite material if the owner wants it. `b
 presets that nothing enables, mirroring the original; the five effects that exist only in the earlier
 copy (`basic`, `pointsprite`, `rain`, `snow`, `riemer`) are out of scope (§17).
 
-**HUD and text.** Everything the original always drew is always drawn: the portrait, the quick bar,
-the debug readout (§9.1) and the six start-up test messages, kept as data so the opening looks the
-same; the readout's frame-rate shows the real frame rate. Text is UI Toolkit in Arial 10 and Lucida
-Console 14 equivalents.
+**HUD and text (U.VAN-US-A12).** Everything the original always drew is always drawn, every figure, text and colour
+hud.json's. Core's `Hud` holds what changes: `QuickBar` is `QuickBar.cs` (starts shown at (103, H - 105); U, in Play
+and the editor, starts a slide unless one is under way; 3 px a frame down until its top reaches H, or up to H - 105,
+the original's two separate `if`s), `FadeLens` is `Lenses.cs` (its float timer passes 10 ms every frame, so `CheckFade`
+runs every frame: Out darkens the black tint by 1 to 255, In clears it by 1 to 0 and then goes Off, Off keeps it
+clear) and `MessageStack` is `MessageHandler.cs` (a message queues at (400, 284); while one is queued the float timer
+passes 50 ms every third frame, and then each message in order falls 1 px and loses 1 alpha if it is the first or 16 px
+behind the one that last moved, and is removed at alpha 0; it is written only below y 316, so a message shows after
+1.65 s and is gone after 12.75 s), replayed frame for frame in the Core tests against a literal copy of the original's
+`Update`. The six start-up messages ("test1" .. "test6", Wheat) are queued when the world is built, the script's
+messages (`say`, `yell`, `msg hi`, `pause`, `mute`) join the stack, `fade in|out|off` set the lens, and a pad connecting
+(Play and the editor) rewrites the front message as "XBox 360 Gamepad Connected" in Peru, opaque again, as
+`InvokeMessage` did. The world steps the HUD after the console, in every state, so messages fall and fades run while
+the menu or console freezes the world. `HudReadout` builds the debug text as `GuiManager.Draw` concatenated it, numbers
+written as .NET 3.5 wrote a float (seven significant digits, no negative zero): the driven character's name, position
+and cell at (100, 100); "Mode: " + the camera's mode and its (negative) position at (300, 100); the GUI cursor at
+(600, 100), written twice as the original wrote it twice; "Coords:" + the editor's selected cell (the cell under the
+editor's cursor, (0, 0) until the editor first opens) at (700, 100); the frame rate at (W - 100, 10). Runtime draws it in
+`GuiManager.Draw`'s order as UI Toolkit elements in the pixel-perfect panel: `HudView` after the names and before the
+menu (the portrait's glass at 0.4, `portrait_1` stretched from 84 x 94 to the 99 x 110 frame, bilinear, and the frame,
+at (0, H - 110); the quick bar's glass at 0.4 and frame where its slide has it; then the lens, the whole screen in the
+lens' tint), so a fade darkens the world, the names and the HUD but not the menu, the console or the text; and
+`HudTextView` last, after the console (the readout in white, then each shown message in its colour and fading alpha),
+in the Arial 10 equivalent (13 px). The five HUD pictures are the original PNGs under `Resources/Gui`. The GUI cursor
+the readout writes is the mouse read on the letterboxed 800 x 600 reference in whole pixels and kept inside (0, 0) ..
+(787, 582) as the original's Screen-mode cursor kept its 13 x 18 picture on screen; the cursor itself is drawn with the
+editor's cursors (A14). Decisions and fixes: the readout shows the real frame rate (the original's `1 / ElapsedGameTime`
+always read 59.99988 under XNA's fixed step; `realFrameRate: false` shows that); defect 13 is fixed
+(`holdBlackAfterFadeOut`); defects 17 and 18 below are fixed. The Sun's tint never ran and is invisible, so nothing
+draws it here; it and the ActionCross are A16's inert data. `unity.ps1 capture` writes `play-ui.png` (the HUD with the
+start-up messages falling), `hud-quickbar-away.png` and `hud-fade-half.png`.
+
+Text is UI Toolkit in Arial 10 and Lucida Console 14 equivalents.
 
 **Persistence.** None in the original and none added: the editor's changes are lost on exit. Adding a
 save is a new feature and needs the owner's say-so.

@@ -13,7 +13,7 @@ namespace Unity.ProjectVania.EditorTools
     /// command line (<c>unity.ps1 capture</c>, which runs with graphics). It boots the game as the player would, lets the
     /// characters fall and land and the Loose camera settle on player one, then captures the followed view, the view
     /// zoomed in and turned by the camera keys (the original's matrix: scale cubed, about the world origin), the map's
-    /// top-left corner, and that corner with the editor open. The main menu's pictures (menu, menu-video) and the console's (console-sliding, console, console-full-red) draw the UI Toolkit overlay over the camera's picture; the others are the camera alone, without the names.
+    /// top-left corner, and that corner with the editor open. The main menu's pictures (menu, menu-video), the console's (console-sliding, console, console-full-red) and the HUD's (play-ui, hud-quickbar-away, hud-fade-half) draw the UI Toolkit overlay over the camera's picture; the others are the camera alone, without the names or the HUD.
     /// </summary>
     public static class SceneCapture
     {
@@ -90,6 +90,22 @@ namespace Unity.ProjectVania.EditorTools
 
                 Present(host);
 
+                // The HUD (U.VAN-US-A12): a message and the readout over the quick bar slid off the bottom, then the screen
+                // half faded out under the text (the lens is drawn before the menu, the console and the text).
+                Type(host, "say the quick bar is away", submit: true);
+                host.World.Submit(new ToggleQuickBar(PlayerId.One));
+                Steps(host, 120);
+                Present(host);
+                SaveWithUi(camera, host, Path.Combine(output, "hud-quickbar-away.png"));
+                host.World.Submit(new ToggleQuickBar(PlayerId.One));
+                Steps(host, 40);
+                Type(host, "fade out", submit: true);
+                Steps(host, 127);
+                Present(host);
+                SaveWithUi(camera, host, Path.Combine(output, "hud-fade-half.png"));
+                Type(host, "fade off", submit: true);
+                Present(host);
+
                 // = held 20 steps (scale 1.2, magnified 1.728 about the world origin), then PageUp 20 (0.2 rad clockwise).
                 Nudge(host, CameraNudge.ZoomIn, 20);
                 Present(host);
@@ -132,8 +148,10 @@ namespace Unity.ProjectVania.EditorTools
 
             host.GetComponentInChildren<MapView>().Present();
             host.GetComponentInChildren<NameTags>()?.Place();
+            host.GetComponentInChildren<HudView>()?.Refresh();
             host.GetComponentInChildren<MainMenuView>()?.Refresh();
             host.GetComponentInChildren<ConsoleView>()?.Refresh();
+            host.GetComponentInChildren<HudTextView>()?.Refresh();
             var follow = host.GetComponentInChildren<GameCamera>();
             if (follow != null && follow.enabled)
             {

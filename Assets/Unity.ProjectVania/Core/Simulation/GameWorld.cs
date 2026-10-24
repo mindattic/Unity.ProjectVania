@@ -32,10 +32,11 @@ namespace Unity.ProjectVania.Core.Simulation
         /// A world with no map and no characters (the state and command tests that need no grid), with menu.json's main
         /// menu if given (the menu tests) and console.json's console if given (the console tests).
         /// </summary>
-        public GameWorld(MenuData menu = null, ConsoleData console = null)
+        public GameWorld(MenuData menu = null, ConsoleData console = null, HudData hud = null)
         {
             if (menu != null) Menu = new MainMenu(menu);
             if (console != null) Console = new GameConsole(console);
+            if (hud != null) Hud = new Hud(hud);
         }
 
         /// <summary>A world on <paramref name="map"/> (the bridge level, <see cref="Map.FromSettings"/>) with no characters.</summary>
@@ -66,14 +67,16 @@ namespace Unity.ProjectVania.Core.Simulation
         /// random name from <paramref name="names"/>' table for its gender drawn with <paramref name="random"/>
         /// (<c>new Player(position, gender)</c> and <c>g.RandomName</c>, RECONSTRUCTION 4.1); with <paramref name="camera"/>,
         /// a camera for each character's player (<see cref="Camera"/>); with <paramref name="menu"/>, the main menu (<see cref="Menu"/>);
-        /// with <paramref name="console"/>, the console (<see cref="Console"/>); with <paramref name="audio"/>, its starting mute.
+        /// with <paramref name="console"/>, the console (<see cref="Console"/>); with <paramref name="audio"/>, its starting mute;
+        /// with <paramref name="hud"/>, the HUD and its six start-up messages (<see cref="Hud"/>).
         /// </summary>
         public GameWorld(Map map, PlayerData player, Character character, NameData names, Random random, CameraData camera = null, MenuData menu = null,
-            ConsoleData console = null, AudioData audio = null)
+            ConsoleData console = null, AudioData audio = null, HudData hud = null)
             : this(map)
         {
             if (menu != null) Menu = new MainMenu(menu);
             if (console != null) Console = new GameConsole(console);
+            if (hud != null) Hud = new Hud(hud);
             Muted = audio != null && audio.Muted;
             _player = player ?? throw new ArgumentNullException(nameof(player));
             if (character == null) throw new ArgumentNullException(nameof(character));
@@ -127,8 +130,19 @@ namespace Unity.ProjectVania.Core.Simulation
         /// </summary>
         public GameConsole Console { get; }
 
-        /// <summary>The lens' fade the script last set (<c>Gui.Lenses.Fade</c>); Off at start.</summary>
-        public FadeState Fade { get; private set; }
+        /// <summary>
+        /// The always-on HUD (RECONSTRUCTION 9.1): the quick bar, the fade lens and the message stack, or null for a world
+        /// built without hud.json; without one, messages and fades are still named as events but nothing keeps them.
+        /// </summary>
+        public Hud Hud { get; }
+
+        /// <summary>
+        /// The lens' fade (<c>Gui.Lenses.Fade</c>), Off at start: the HUD lens' state, which the script sets and the lens
+        /// itself moves to Off when a fade in finishes; without a HUD, what the script last set.
+        /// </summary>
+        public FadeState Fade => Hud != null ? Hud.Lens.State : _fade;
+
+        FadeState _fade;
 
         /// <summary>Whether the game's sound is muted (<c>Audio.Muted</c>): no cue is named and no song started while it is.</summary>
         public bool Muted { get; private set; }
@@ -269,6 +283,9 @@ namespace Unity.ProjectVania.Core.Simulation
                 }
             }
 
+            // The rest of GuiManager.Update: the quick bar, the lenses and the message stack.
+            Hud?.Update();
+
             for (int i = 0; i < _characters.Count; i++)
             {
                 if (_characters[i].Action != _actionsBefore[i])
@@ -380,6 +397,17 @@ namespace Unity.ProjectVania.Core.Simulation
                 case ToggleFullscreen _:
                     _events.Add(new FullscreenToggled(Tick));
                     break;
+
+                // U (Play and the editor): QuickBar.ToggleQuickBar, ignored while it slides.
+                case ToggleQuickBar _:
+                    Hud?.QuickBar.Toggle();
+                    break;
+
+                // A pad connecting (Play and the editor): MessageHandler.InvokeMessage("XBox 360 Gamepad Connected", Peru).
+                case AnnounceGamepad _ when Hud != null:
+                    var notice = Hud.Data.Messages.GamepadNotice;
+                    Hud.Messages.Invoke(notice.Text, notice.Colour.ToRgba());
+                    break;
             }
         }
 
@@ -429,11 +457,16 @@ namespace Unity.ProjectVania.Core.Simulation
         }
 
         // The script's reach outside the console (IScriptHost).
-        void IScriptHost.Message(string text, SettingsColour colour) => _events.Add(new MessageRequested(Tick, text, colour.ToRgba()));
+        void IScriptHost.Message(string text, SettingsColour colour)
+        {
+            Hud?.Messages.Add(text, colour.ToRgba());
+            _events.Add(new MessageRequested(Tick, text, colour.ToRgba()));
+        }
 
         void IScriptHost.Fade(FadeState fade)
         {
-            Fade = fade;
+            _fade = fade;
+            Hud?.Lens.Set(fade);
             _events.Add(new FadeRequested(Tick, fade));
         }
 

@@ -25,11 +25,12 @@ namespace Unity.ProjectVania.Core.Settings
         public const string SegmentsFile = "segments.json";
         public const string NamesFile = "names.json";
         public const string InputFile = "input.json";
+        public const string HudFile = "hud.json";
 
         /// <summary>Every data file the registry reads.</summary>
         public static readonly string[] Files =
         {
-            PlayerFile, CharactersFile, AnimationsFile, GridFile, MenuFile, CameraFile, ConsoleFile, AudioFile, SegmentsFile, NamesFile, InputFile,
+            PlayerFile, CharactersFile, AnimationsFile, GridFile, MenuFile, CameraFile, ConsoleFile, AudioFile, SegmentsFile, NamesFile, InputFile, HudFile,
         };
 
         private GameSettings()
@@ -47,6 +48,7 @@ namespace Unity.ProjectVania.Core.Settings
         public SegmentData Segments { get; private set; }
         public NameData Names { get; private set; }
         public InputData Input { get; private set; }
+        public HudData Hud { get; private set; }
 
         /// <summary>The original-to-Runtime unit mapping (grid.json units).</summary>
         public OriginalUnits Units { get; private set; }
@@ -77,6 +79,7 @@ namespace Unity.ProjectVania.Core.Settings
                 Segments = Read(source, SegmentsFile, errors, SegmentData.Read),
                 Names = Read(source, NamesFile, errors, NameData.Read),
                 Input = Read(source, InputFile, errors, InputData.Read),
+                Hud = Read(source, HudFile, errors, HudData.Read),
             };
 
             if (errors.Count == 0)
@@ -174,6 +177,11 @@ namespace Unity.ProjectVania.Core.Settings
             }
 
             CheckInMap(errors, Player.ResetPosition, width, height, "the reset position");
+
+            if (Hud.Screen.X != Grid.ReferenceScreen.X || Hud.Screen.Y != Grid.ReferenceScreen.Y)
+            {
+                errors.Add($"{HudFile}: screen ({Hud.Screen.X}, {Hud.Screen.Y}) must be {GridFile}'s referenceScreen ({Grid.ReferenceScreen.X}, {Grid.ReferenceScreen.Y})");
+            }
         }
 
         private static void CheckInMap(List<string> errors, Pair position, int width, int height, string what)

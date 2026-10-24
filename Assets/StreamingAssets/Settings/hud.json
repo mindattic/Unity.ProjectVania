@@ -1,0 +1,64 @@
+{
+  "_source": "Gui\\Portrait\\Portrait.cs, Gui\\QuickBar\\QuickBar.cs, Gui\\Lenses\\Lenses.cs, Gui\\Messages\\MessageHandler.cs and GuiManager.Draw's debug text (RECONSTRUCTION 9.1), in the original's screen pixels, y down. Each layer is a picture tinted white at its alpha (g.Alpha). holdBlackAfterFadeOut is BIBLE defect 13's fix; noticeWhenEmpty and realFrameRate are the BIBLE's HUD decisions.",
+  "screen": [800, 600],
+  "fontPoints": 10,
+  "portrait": {
+    "x": 0,
+    "fromBottom": 110,
+    "width": 99,
+    "height": 110,
+    "layers": [
+      { "asset": "portrait_glass", "alpha": 0.4 },
+      { "asset": "portrait_1", "alpha": 1.0 },
+      { "asset": "portrait_frame", "alpha": 1.0 }
+    ]
+  },
+  "quickBar": {
+    "x": 103,
+    "fromBottom": 105,
+    "width": 261,
+    "height": 105,
+    "slideStep": 3,
+    "startsVisible": true,
+    "layers": [
+      { "asset": "quick_bar_glass", "alpha": 0.4 },
+      { "asset": "quick_bar_frame", "alpha": 1.0 }
+    ]
+  },
+  "lens": {
+    "colour": [0, 0, 0],
+    "stepMilliseconds": 10,
+    "alphaStep": 1,
+    "holdBlackAfterFadeOut": true
+  },
+  "messages": {
+    "margin": 16,
+    "stepMilliseconds": 50,
+    "fall": 1,
+    "fadeStep": 1,
+    "startup": [
+      { "text": "test1", "colour": "Wheat" },
+      { "text": "test2", "colour": "Wheat" },
+      { "text": "test3", "colour": "Wheat" },
+      { "text": "test4", "colour": "Wheat" },
+      { "text": "test5", "colour": "Wheat" },
+      { "text": "test6", "colour": "Wheat" }
+    ],
+    "gamepadNotice": { "text": "XBox 360 Gamepad Connected", "colour": "Peru" },
+    "noticeWhenEmpty": true
+  },
+  "readout": {
+    "colour": "White",
+    "player": [100, 100],
+    "camera": [300, 100],
+    "cursor": [600, 100],
+    "cursorWrites": 2,
+    "cell": [700, 100],
+    "fpsFromRight": 100,
+    "fpsY": 10,
+    "modePrefix": "Mode: ",
+    "cellPrefix": "Coords:",
+    "cursorSize": [13, 18],
+    "realFrameRate": true
+  }
+}

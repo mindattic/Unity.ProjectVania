@@ -43,6 +43,7 @@ namespace Unity.ProjectVania.Core.Settings
         Black,
         Wheat,
         LightSteelBlue,
+        Peru,
     }
 
     /// <summary>The XNA <c>Color</c> each <see cref="SettingsColour"/> names, opaque.</summary>
@@ -60,6 +61,7 @@ namespace Unity.ProjectVania.Core.Settings
                 case SettingsColour.Black: return new Rgba(0, 0, 0, 255);
                 case SettingsColour.Wheat: return new Rgba(245, 222, 179, 255);
                 case SettingsColour.LightSteelBlue: return new Rgba(176, 196, 222, 255);
+                case SettingsColour.Peru: return new Rgba(205, 133, 63, 255);
                 default: return Rgba.White;
             }
         }
