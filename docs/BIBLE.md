@@ -84,7 +84,7 @@ standard.
 | 3 | A kneel is not left by releasing S | **Fix** (owner decision 2026-10-23, built by U.VAN-T23): releasing S now stands the character up on the next idle step; a held S, or a jump taken from the kneel, still reads as a kneel that frame, so a slide jump is unaffected. `player.json`'s `kneel.releaseStandsUp` is the data slot |
 | 4 | `step2` and `drag` cues restarted every frame | **Fix**: one `step2` per run-animation frame advance; `drag` restarted when its 0.26 s clip ends |
 | 5 | Shift or pad A held blocks moving | **Fix**: neither blocks movement; Shift has no binding |
-| 6 | Wall jump climbs before pushing away | **Keep, confirm in play** (§4.7) |
+| 6 | Wall jump climbs before pushing away | **Fix** (owner decision 2026-10-23, built by U.VAN-T24): an active wall jump now kicks off a full-height wall every frame contact lasts, at `player.json`'s `wallJump.pushSpeed` (200, the run cap), instead of pinning the horizontal speed at 0 until contact happened to break on its own, which against a wall this tall it never did |
 | 7 | Terminal-speed landing while moving leaves one frame of Falling on OnGround | **Keep**: A6's frame-replay tests assert it |
 | 8 | Last name never chosen; `Other` gender returns null | **Fix**: every name is selectable; `Other` is not exposed |
 | 9, 10 | `Tile(x, y)` mix-up draws the sheet 180 times; palette Y clamp off by one; right step unbounded; no bounds check on the edited cell | **Fix**: the palette draws each tile once at its place; clamp to the sheet in both axes; no painting or highlighting outside the grid |
@@ -128,8 +128,11 @@ the character the same frame, so the kneel-jump "slide" is a one-frame nudge of 
 size the moment the action leaves Sliding (including on Reset). Defect 3 is fixed (U.VAN-T23): `player.json`'s
 `kneel.releaseStandsUp` stands the character up the step after S stops being held, read by `PlayerCharacter`'s idle
 check; it only triggers on a step where `Kneel()` is not also called, so a held kneel (or a jump taken from it, which
-still reads the action as Kneeling before this step's physics run) is unaffected. Defects 6 and 7 are as the original
-until U.VAN-T24 builds the owner's wall-jump push-off decision (that player.json slot is not yet read).
+still reads the action as Kneeling before this step's physics run) is unaffected. Defect 6 is fixed (U.VAN-T24):
+`player.json`'s `wallJump.pushOff`/`pushSpeed` push an active wall jump away from a full-height wall every frame
+contact lasts (through the same air drag as any other horizontal speed, so it settles at the same 130 px/s a run
+settles to in the air), while the vertical jump curve and the passive wall slide are untouched; with `pushOff` off,
+the original's climb-then-pin behaviour is unchanged. Defect 7 is kept as the original.
 
 **Effects.** The one effect used, `filter`, is a 1 % radial vignette (its `refractSampler` was never
 bound, so it never refracted); it becomes a URP full-screen pass over the world camera with its
@@ -154,9 +157,6 @@ proof of concept of the original's engine and toolbox and is then done.
 ## Decisions beyond the original (not yet made, flag when a story hits these)
 
 - Whether the idle twin should become a controllable second character (§18.2).
-- Whether the wall jump should push off at once (defect 6): decided after the play-through in
-  U.VAN-US-A18 (built by U.VAN-T24). Whether the kneel should stand up on release (defect 3) is
-  decided: fixed, built by U.VAN-T23.
 - A real window size and aspect policy beyond the inferred 800 x 600 (§18.3).
 
 ## Laws

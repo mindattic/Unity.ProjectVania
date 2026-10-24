@@ -518,25 +518,44 @@ namespace Unity.ProjectVania.Core.Tests
         }
 
         [Test]
-        public void WallJump_ClimbsStraightUpTheWallThenReattaches()
+        public void WallJump_PushesOffTheWallAtOnceThenKeepsTheOriginalJumpCurve()
         {
+            // Defect 6 fixed (BIBLE, U.VAN-T24, player.json's wallJump.pushOff/pushSpeed): the original held the
+            // horizontal speed at 0 for as long as a full-height wall was touched, so against a wall this tall a wall
+            // jump only ever climbed - contact never broke on its own. Now it kicks away at once and keeps doing so
+            // every frame contact lasts, while the vertical jump curve (RECONSTRUCTION 4.6/4.9) is untouched.
             var (w, c) = OnLeftWall(300);
-            float x = c.Position.X;
+            float x0 = c.Position.X;
             float y0 = c.Position.Y;
+            Assert.That(c.Facing, Is.EqualTo(-1));
+
             Step(w, Left, Jump);
             Assert.That(c.Action, Is.EqualTo(ActionKind.Jumping));
             Assert.That(c.Terrain, Is.EqualTo(TerrainState.OnWall));
             Assert.That(c.IsWallJumping, Is.True);
 
+            // Still full contact this first frame (the position has not moved yet), so the push applies at once
+            // instead of the original's zero. It goes through the same air drag (0.65) as any other horizontal
+            // speed, so player.json's 200 px/s pushSpeed settles at 130: the same speed a run settles to in the air
+            // (U.VAN-T9).
+            Assert.That(c.WallContact, Is.EqualTo(3));
+            Assert.That(c.Velocity.X, Is.EqualTo(200f * 0.65f).Within(1e-3f));
+            Assert.That(c.Position.X, Is.GreaterThan(x0));
+
             int frames = 1;
             float apex = c.Position.Y;
+            bool sawContactBreak = false;
             while (c.Action == ActionKind.Jumping)
             {
                 Step(w, Left);
                 frames++;
                 apex = Math.Min(apex, c.Position.Y);
-                // Defect 6, kept: the full-height wall holds the horizontal speed at 0 while contact lasts.
-                Assert.That(c.Position.X, Is.EqualTo(x));
+
+                // The push-off is not a drop off the wall: Facing never flips mid-jump, and the jump keeps rising
+                // (via ActionJump, which keeps setting IsWallJumping while Terrain reads OnWall) even once contact is
+                // actually lost, ending only when ActionJump's own timer calls Fall(), exactly as before the fix.
+                Assert.That(c.Facing, Is.EqualTo(-1), $"frame {frames}");
+                if (c.WallContact == 0) sawContactBreak = true;
                 if (c.Action == ActionKind.Jumping) Assert.That(c.IsWallJumping, Is.True);
             }
 
@@ -545,12 +564,47 @@ namespace Unity.ProjectVania.Core.Tests
             Assert.That(c.Action, Is.EqualTo(ActionKind.Falling));
             Assert.That(c.IsWallJumping, Is.False);
 
-            // Still holding toward the wall: back to the slide, and the jump time is clear for the next wall jump.
+            // Unlike the original (defect 6), the character actually left the wall during the climb...
+            Assert.That(sawContactBreak, Is.True);
+            Assert.That(c.Position.X, Is.GreaterThan(x0 + 10f));
+
+            // ...so holding back toward the wall afterward does not reattach at once: he is out past it now.
             Step(w, Left);
-            Assert.That(c.Action, Is.EqualTo(ActionKind.WallSliding));
-            Assert.That(c.JumpTime, Is.EqualTo(0f));
+            Assert.That(c.Action, Is.EqualTo(ActionKind.Falling));
+        }
+
+        [Test]
+        public void WallJump_WithPushOffDisabledStillClimbsStraightUpAsTheOriginalDid()
+        {
+            // player.json's wallJump.pushOff is a data slot (U.VAN-T24): with it off, the original's defect-6
+            // behaviour (held at 0 for as long as a full-height wall is touched, so the wall jump only ever climbs)
+            // is unchanged.
+            var shipped = new DirectorySettingsSource(GameSettingsTests.ShippedFolder);
+            var patched = new MemorySettingsSource(shipped).Set(GameSettings.PlayerFile,
+                shipped.Read(GameSettings.PlayerFile).Replace("\"pushOff\": true", "\"pushOff\": false"));
+            var s = GameSettings.Load(patched);
+            var w = new GameWorld(Map.FromSettings(s.Grid), s.Player, s.Characters.Find("Morris").UnitSize);
+            var c = w.Characters[0];
+            c.Reset(new PixelVector(350, 300));
+            int frames = 0;
+            while (c.Action != ActionKind.WallSliding)
+            {
+                Step(w, Left);
+                Assert.That(++frames, Is.LessThan(60), "never reached the wall");
+            }
+
+            float x = c.Position.X;
             Step(w, Left, Jump);
             Assert.That(c.Action, Is.EqualTo(ActionKind.Jumping));
+            Assert.That(c.Velocity.X, Is.EqualTo(0f));
+
+            while (c.Action == ActionKind.Jumping)
+            {
+                Step(w, Left);
+                Assert.That(c.Position.X, Is.EqualTo(x));
+            }
+
+            Assert.That(c.Action, Is.EqualTo(ActionKind.Falling));
         }
 
         [Test]

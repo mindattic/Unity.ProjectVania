@@ -25,8 +25,11 @@ namespace Unity.ProjectVania.Core.Characters
     /// so the ordinary ground checks apply and the character is not trapped in the slide; 2, the collision size the
     /// slide shrinks to is restored the moment the character leaves the slide; 3, owner decision 2026-10-23
     /// (<c>player.json</c>'s <c>kneel.releaseStandsUp</c>), releasing down now stands the character up instead of
-    /// holding the kneel forever as the original did. Kept as the original: 6 (a wall jump climbs along the wall
-    /// until contact is lost) and 7 (a terminal-speed landing while moving stays Falling on the ground for one frame).
+    /// holding the kneel forever as the original did; 6, owner decision 2026-10-23 (<c>player.json</c>'s
+    /// <c>wallJump.pushOff</c>/<c>pushSpeed</c>, built by U.VAN-T24), an active wall jump now kicks the character
+    /// away from a full-height wall every frame contact lasts instead of pinning the horizontal speed at 0 until
+    /// contact happened to break on its own (which, against a wall this tall, it never did). Kept as the original:
+    /// 7 (a terminal-speed landing while moving stays Falling on the ground for one frame).
     /// </para>
     /// </summary>
     public sealed class PlayerCharacter
@@ -203,8 +206,17 @@ namespace Unity.ProjectVania.Core.Characters
             }
             else if (WallContact == UnitHeight)
             {
-                // (The original first added 5 * -movement while wall jumping, then overwrote it.)
-                _velocity.X = 0;
+                // (The original first added 5 * -movement while wall jumping, then overwrote it.) Defect 6 fixed
+                // (BIBLE, U.VAN-T24): the original held this at 0 for as long as a full-height wall was touched, so
+                // against a wall this tall a wall jump only ever climbed - contact never broke on its own, so the
+                // push-off the original's own code clearly intended (RECONSTRUCTION 4.4's "so a wall jump pushes
+                // away from the wall") never ran. An active wall jump now kicks away from the wall at player.json's
+                // wallJump.pushSpeed every frame contact lasts; ApplyDrag below reduces it exactly as it would any
+                // other air speed, so it settles at the same speed a run settles to in the air. A passive wall slide
+                // (not jumping) is unaffected: it still pins this at 0.
+                _velocity.X = _t.WallJumpPushOff && IsJumping && Terrain == TerrainState.OnWall
+                    ? -Facing * _t.WallJumpPushSpeed
+                    : 0f;
             }
 
             // A partial count (a step or ledge) neither accelerates nor stops the character; drag decays it.
@@ -259,12 +271,17 @@ namespace Unity.ProjectVania.Core.Characters
                     {
                         Stand();
                     }
-                    else if (WallContact == 0)
+                    else if (!IsJumping && WallContact == 0)
                     {
+                        // A passive drop off the top of a wall (sliding, not jumping). An active wall jump's own
+                        // push-off (CheckCollisions above) also loses contact without being a drop: it keeps rising
+                        // on the original's jump curve and only falls when ActionJump's own timer ends it, exactly as
+                        // defect 6's fix intends (BIBLE, U.VAN-T24); this guard is otherwise a no-op; a wall jump the
+                        // original's own way (push off disabled) never loses contact mid-climb to reach here either.
                         Facing = Facing == -1 ? 1 : -1;
                         Fall();
                     }
-                    else if (Movement == 0)
+                    else if (!IsJumping && Movement == 0)
                     {
                         if (WallSlideTime < _t.MaxWallSlideTime) WallSlideTime += elapsed;
                         else Fall();
