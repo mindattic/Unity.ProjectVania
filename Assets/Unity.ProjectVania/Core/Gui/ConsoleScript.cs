@@ -30,13 +30,17 @@ namespace Unity.ProjectVania.Core.Gui
     /// </summary>
     public static class ConsoleScript
     {
+        /// <summary>The songs <c>play music</c> and <c>play battle</c> start (audio.json's <c>songs</c>).</summary>
+        public const string MusicSong = "music";
+        public const string BattleSong = "battle";
+
         public static void Execute(string line, GameConsole console, IScriptHost host)
         {
             var data = console.Data.Script;
             var script = (line ?? string.Empty).ToLowerInvariant();
 
-            if (script == "play music") host.PlaySong("music");
-            if (script == "play battle") host.PlaySong("battle");
+            if (script == "play music") host.PlaySong(MusicSong);
+            if (script == "play battle") host.PlaySong(BattleSong);
 
             if (script == "fade in") host.Fade(FadeState.In);
             if (script == "fade out") host.Fade(FadeState.Out);

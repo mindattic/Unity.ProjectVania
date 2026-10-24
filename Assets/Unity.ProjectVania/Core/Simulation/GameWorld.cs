@@ -68,10 +68,11 @@ namespace Unity.ProjectVania.Core.Simulation
         /// (<c>new Player(position, gender)</c> and <c>g.RandomName</c>, RECONSTRUCTION 4.1); with <paramref name="camera"/>,
         /// a camera for each character's player (<see cref="Camera"/>); with <paramref name="menu"/>, the main menu (<see cref="Menu"/>);
         /// with <paramref name="console"/>, the console (<see cref="Console"/>); with <paramref name="audio"/>, its starting mute;
-        /// with <paramref name="hud"/>, the HUD and its six start-up messages (<see cref="Hud"/>).
+        /// with <paramref name="hud"/>, the HUD and its six start-up messages (<see cref="Hud"/>); with <paramref name="audio"/> and
+        /// <paramref name="animations"/>, each character's run and wall-slide cues (<see cref="CharacterCues"/>).
         /// </summary>
         public GameWorld(Map map, PlayerData player, Character character, NameData names, Random random, CameraData camera = null, MenuData menu = null,
-            ConsoleData console = null, AudioData audio = null, HudData hud = null)
+            ConsoleData console = null, AudioData audio = null, HudData hud = null, AnimationData animations = null)
             : this(map)
         {
             if (menu != null) Menu = new MainMenu(menu);
@@ -86,6 +87,7 @@ namespace Unity.ProjectVania.Core.Simulation
             {
                 var name = RandomName.Pick(names.For(character.Gender), random);
                 _characters.Add(new PlayerCharacter(player, character, new PixelVector(spawn.X, spawn.Y), name));
+                if (audio != null) _characterCues.Add(new CharacterCues(animations?.Find(character.Sheet), audio, FixedStepper.StepsPerSecond));
             }
 
             AddCameras(camera);
@@ -103,6 +105,9 @@ namespace Unity.ProjectVania.Core.Simulation
         }
 
         readonly List<PlayerCharacter> _characters = new List<PlayerCharacter>();
+
+        // Each character's sounds (step2 and drag), one per character, or none for a world built without audio.json.
+        readonly List<CharacterCues> _characterCues = new List<CharacterCues>();
         readonly PlayerData _player;
         ActionKind[] _actionsBefore = Array.Empty<ActionKind>();
 
@@ -259,9 +264,12 @@ namespace Unity.ProjectVania.Core.Simulation
 
             if (State == GameState.Play)
             {
-                foreach (var character in _characters)
+                for (var i = 0; i < _characters.Count; i++)
                 {
-                    character.Step(Map, FixedStepper.OriginalElapsedSeconds);
+                    _characters[i].Step(Map, FixedStepper.OriginalElapsedSeconds);
+                    // CheckActionState's Action_Run / Action_Wallslide sounds, each character in turn as the original's
+                    // foreach updated them.
+                    if (i < _characterCues.Count) Cue(_characterCues[i].Step(_characters[i], Tick, FixedStepper.OriginalElapsedSeconds, Muted));
                 }
             }
 

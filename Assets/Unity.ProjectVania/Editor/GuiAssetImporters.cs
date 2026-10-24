@@ -63,4 +63,31 @@ namespace Unity.ProjectVania.EditorTools
             importer.defaultSampleSettings = sample;
         }
     }
+
+    /// <summary>
+    /// Imports the console's two songs (RECONSTRUCTION 11, the original's <c>Content\Audio\Music\*.mp3</c>, 7 MB and 5 MB)
+    /// compressed and streamed from disk, as XNA's MediaPlayer streamed its <c>Song</c>s, so neither sits decoded in memory.
+    /// </summary>
+    public sealed class SongAudioImporter : AssetPostprocessor
+    {
+        public const string Folder = "Assets/Unity.ProjectVania/Resources/" + SongPlayer.ResourceFolder + "/";
+
+        void OnPreprocessAudio()
+        {
+            if (!assetPath.StartsWith(Folder))
+            {
+                return;
+            }
+
+            var importer = (AudioImporter)assetImporter;
+            importer.forceToMono = false;
+            importer.loadInBackground = true;
+            var sample = importer.defaultSampleSettings;
+            sample.loadType = AudioClipLoadType.Streaming;
+            sample.compressionFormat = AudioCompressionFormat.Vorbis;
+            sample.quality = 0.7f;
+            sample.preloadAudioData = false;
+            importer.defaultSampleSettings = sample;
+        }
+    }
 }

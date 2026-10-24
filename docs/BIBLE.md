@@ -82,7 +82,7 @@ standard.
 | 1 | Slide-jump leaves `isJumping` set: trapped, cannot fall | **Fix**: the slide jump starts a slide with `isJumping` clear, so ordinary ground checks apply |
 | 2 | `UnitSize` stuck at (3,1) after a slide | **Fix**: restored to the character's size on leaving the slide |
 | 3 | A kneel is not left by releasing S | **Fix** (owner decision 2026-10-23, built by U.VAN-T23): releasing S now stands the character up on the next idle step; a held S, or a jump taken from the kneel, still reads as a kneel that frame, so a slide jump is unaffected. `player.json`'s `kneel.releaseStandsUp` is the data slot |
-| 4 | `step2` and `drag` cues restarted every frame | **Fix**: one `step2` per run-animation frame advance; `drag` restarted when its 0.26 s clip ends |
+| 4 | `step2` and `drag` cues restarted every frame | **Fix** (built by U.VAN-T16): one `step2` for every frame the run strip shows (as it starts and at each frame advance, on Core's own copy of the strip's clock); `drag` started again only when the last one's 0.26 s clip has ended (16 steps); audio.json's `runCue` / `wallSlideCue` name them |
 | 5 | Shift or pad A held blocks moving | **Fix**: neither blocks movement; Shift has no binding |
 | 6 | Wall jump climbs before pushing away | **Fix** (owner decision 2026-10-23, built by U.VAN-T24): an active wall jump now kicks off a full-height wall every frame contact lasts, at `player.json`'s `wallJump.pushSpeed` (200, the run cap), instead of pinning the horizontal speed at 0 until contact happened to break on its own, which against a wall this tall it never did |
 | 7 | Terminal-speed landing while moving leaves one frame of Falling on OnGround | **Keep**: A6's frame-replay tests assert it |
@@ -98,9 +98,23 @@ standard.
 | 17 | The message stack keeps the index of the message that last moved across ticks; once a pad's notice has made the front message opaque again it outlives the rest, and when the last of them is removed the stale index points past the list and the game throws (U.VAN-T15, a test replays the original's crash) | **Fix**: the index is kept inside the list; nothing else about the stack changes |
 | 18 | `InvokeMessage` does nothing with no message queued (its "show the first message" branch is commented out), so the gamepad notice is lost once the start-up messages are gone | **Fix**: with nothing queued the notice is queued as a new message; hud.json's `messages.noticeWhenEmpty` is the slot |
 
-**Audio.** Music never starts by itself, as in the original; only `play music` / `play battle` start it
-(§11). The XACT banks become a cue table in data (name, clip, volume in dB, loop, category), and the
-`music1` cue and unused footsteps are kept in the table, unplayed, as the original had them.
+**Audio (U.VAN-US-A13).** Music never starts by itself, as in the original; only `play music` / `play battle` start it
+(§11). The XACT banks become a cue table in data (audio.json: name, wave, length, volume in hundredths of a dB, loop,
+bank), and the `music1` cue, the two footsteps, `step1` and `jump1` are kept in the table, unplayed, as the original had
+them. The world names every cue as a `CueRequested` event, none while muted. Each character's sounds are Core's
+`CharacterCues`, stepped after that character's update in Play only (so the menu, console and editor freeze them with the
+world): `step2` while Running, once per run-strip frame on a copy of the drawn strip's clock stepped at the fixed rate,
+restarted with every run; `drag` while WallSliding, once per clip (defect 4 above). A drag the mute dropped started
+nothing, so it does not hold back the next. Runtime's `CuePlayer` plays a cue as a one-shot from
+`Resources/Audio/<wave>.wav` (16-bit PCM, decompressed and preloaded) at the cue's XACT volume times the table's volume;
+a cue already started plays on through a mute, as XACT's did. Every wave the table names is imported but `music1`'s
+(64.5 s of PCM no code ever started; the asset sweep, A17, brings it in). Runtime's `SongPlayer` is the original's
+`MediaPlayer`: the console's `SongRequested` starts the song from audio.json's `songs` (`Resources/Music/music.mp3` and
+`battle.mp3`, Vorbis, streamed) from its start, once, not looping, replacing any song playing; `MusicPauseChanged` pauses
+or resumes it; `MuteChanged` sets its volume to 0 or the table's volume and the song plays on unheard, as
+`MediaPlayer.Volume` did. When a song heard playing has run to its end, `GameHost` submits `EndSong` before the next
+step, and the world's `Music` reads Stopped again (so `pause` resumes nothing, as `MediaPlayer.State` read). audio.json's
+two cues and the two songs the console names are checked on load.
 
 **Input.** The Input System supplies the devices; the action map is Core's (U.VAN-US-A4). Bindings are data
 (`input.json`: every action's XNA-named keys and pad buttons, the console's typing chain), validated on load.
@@ -219,8 +233,7 @@ and the description at (10, H - 20) in white. Lucida Console is taken from the i
 Windows and is not ours to redistribute), with Unity's built-in font standing in where it is missing. Runtime's
 `CuePlayer` plays a cue from audio.json's table, its wave at `Resources/Audio/<wave>.wav` imported as the original's
 PCM, a new one-shot each time at the cue's XACT volume (hundredths of a dB) times the table's volume, nothing while
-muted; only the four menu waves are imported so far, and the rest of the table (and mute, pause and the songs) is
-U.VAN-US-A13's. Left for later stories: the GUI's hand cursor, which the original drew over the menu at the mouse
+muted; the rest of the table, and mute, pause and the songs, are U.VAN-US-A13's (**Audio**, above). Left for later stories: the GUI's hand cursor, which the original drew over the menu at the mouse
 (`Cursor` in Screen mode, RECONSTRUCTION 8), comes with the editor's cursors (A14); the console's slide and its cues
 are A11's (below). `unity.ps1 capture` now also writes `menu.png` and `menu-video.png` (and `play-ui.png`), the camera's
 picture with the UI Toolkit panel drawn over it.
@@ -252,8 +265,7 @@ instead, and a test runs every combination of the language's words without a thr
 whatever it is told. The script's reach outside the console is events the world names and state it keeps: messages
 (`MessageRequested`, text and XNA colour) for A12's message stack, the fade (`Fade`, `FadeRequested`) for A12's lens, and
 songs (`SongRequested`, `MusicPauseChanged`, `MuteChanged`, `Music`; `EndSong` for the player to report a finished song)
-for A13; the messages and the fade are shown by A12's HUD (below), and until A13 lands the song lines change state and
-name events but nothing is heard. Runtime's
+for A13, which plays them (**Audio**, above); the messages and the fade are shown by A12's HUD (below). Runtime's
 `ConsoleView` draws it in the pixel-perfect panel after the menu, every frame: `console1` (608 x 203, bilinear, as it is
 stretched) over (0, Y, 800, height) at 0.75, then in the Console state only, in the Arial 10 equivalent (13 px), the
 yellow `>`, the line and the 100 history lines at the original's screen positions (not the panel's), in the console's two

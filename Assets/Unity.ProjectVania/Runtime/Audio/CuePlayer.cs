@@ -9,9 +9,11 @@ namespace Unity.ProjectVania
     /// audio.json's cue table: the cue's wave is <c>Resources/Audio/&lt;wave&gt;.wav</c>, imported as the original's PCM,
     /// started as a new one-shot instance each time (XACT allowed 255 per category) at the cue's XACT volume, in
     /// hundredths of a dB, times the table's volume. Mute is the world's: it names no cue while muted (audio.json's
-    /// muted at start, then the console's mute), as the original's play methods returned while <c>Muted</c>. Only the cues
-    /// whose waves have been imported are heard: the menu's four (U.VAN-US-A10) and the console's two (A11); the rest of
-    /// the table is the audio story's (A13).
+    /// muted at start, then the console's mute), as the original's play methods returned while <c>Muted</c>, and a cue
+    /// already started plays on through a mute, as XACT's did. Every wave the table's cues name is imported but
+    /// <c>music1</c>'s (an 11 MB PCM loop no code ever started; the asset sweep, A17, brings it in): the four menu cues,
+    /// the console's two, the run's <c>step2</c> and the wall slide's <c>drag</c>, and the unplayed <c>footstep_1</c>,
+    /// <c>footstep_2</c>, <c>step1</c> and <c>jump1</c>.
     /// </summary>
     public sealed class CuePlayer : MonoBehaviour
     {
@@ -27,9 +29,9 @@ namespace Unity.ProjectVania
         public void Initialize(AudioData audio)
         {
             _audio = audio;
-            _source = GetComponent<AudioSource>();
             if (_source == null)
             {
+                // Its own source: SongPlayer's, on the same object, is the songs'.
                 _source = gameObject.AddComponent<AudioSource>();
             }
 

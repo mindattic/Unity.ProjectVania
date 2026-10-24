@@ -22,8 +22,11 @@ namespace Unity.ProjectVania
         /// <summary>Player one's controls, routed per game state into commands before every step.</summary>
         public PlayerInput Input { get; private set; }
 
-        /// <summary>Plays the cues the world names (the menu's sounds).</summary>
+        /// <summary>Plays the cues the world names (the menu's, the console's and the characters' sounds).</summary>
         public CuePlayer Cues { get; private set; }
+
+        /// <summary>Plays the songs the console starts, pauses and mutes (the original's MediaPlayer).</summary>
+        public SongPlayer Songs { get; private set; }
 
         /// <summary>
         /// What the menu's Quit does (<c>Game.Exit()</c>): quits a build, or leaves Play mode in the Editor. Replaceable so
@@ -37,7 +40,7 @@ namespace Unity.ProjectVania
             // Both spawned characters are the default one, each with a fresh random name, as the original's two Morrises.
             var character = settings.Characters.Find(settings.Characters.DefaultCharacter);
             World = new GameWorld(Map.FromSettings(settings.Grid), settings.Player, character, settings.Names, new System.Random(), settings.Camera, settings.Menu,
-                settings.Console, settings.Audio, settings.Hud);
+                settings.Console, settings.Audio, settings.Hud, settings.Animations);
             Device?.Dispose();
             Device = new InputSystemDevice(settings.Input.StickPressPoint);
             Input = new PlayerInput(PlayerId.One, settings.Input, Device);
@@ -48,6 +51,13 @@ namespace Unity.ProjectVania
             }
 
             Cues.Initialize(settings.Audio);
+            Songs = GetComponent<SongPlayer>();
+            if (Songs == null)
+            {
+                Songs = gameObject.AddComponent<SongPlayer>();
+            }
+
+            Songs.Initialize(settings.Audio);
         }
 
         /// <summary>One rendered frame: latch this frame's input, run every step now due, then present its events.</summary>
@@ -59,13 +69,19 @@ namespace Unity.ProjectVania
             }
 
             Device.Poll();
+            // A song that ran to its end is reported before the step, as the original's MediaPlayer.State read Stopped then.
+            if (Songs.Ended())
+            {
+                World.Submit(new EndSong(Input.Player));
+            }
+
             World.Advance(deltaSeconds, Input);
             Present(World.Events);
         }
 
         /// <summary>
-        /// Plays what the world's steps produced: the window mode, the cues, the exit. The script's messages and fade are
-        /// kept by the world's HUD and drawn from its state (A12); its songs are named as events for the audio story (A13).
+        /// Plays what the world's steps produced: the window mode, the cues, the songs, pause and mute, the exit. The
+        /// script's messages and fade are kept by the world's HUD and drawn from its state (A12).
         /// </summary>
         public void Present(System.Collections.Generic.IReadOnlyList<Core.Commands.IGameEvent> events)
         {
@@ -78,6 +94,15 @@ namespace Unity.ProjectVania
                         break;
                     case CueRequested cue:
                         Cues.Play(cue.Cue);
+                        break;
+                    case SongRequested song:
+                        Songs.Play(song.Song);
+                        break;
+                    case MusicPauseChanged pause:
+                        Songs.SetPaused(pause.Paused);
+                        break;
+                    case MuteChanged mute:
+                        Songs.SetMuted(mute.Muted);
                         break;
                     case QuitRequested _:
                         Exit?.Invoke();

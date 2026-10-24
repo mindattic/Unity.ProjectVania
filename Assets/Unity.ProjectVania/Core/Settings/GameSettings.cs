@@ -169,6 +169,22 @@ namespace Unity.ProjectVania.Core.Settings
                 }
             }
 
+            foreach (var cue in new[] { Audio.RunCue, Audio.WallSlideCue })
+            {
+                if (Audio.FindCue(cue) == null)
+                {
+                    errors.Add($"{AudioFile}: has no cue '{cue}', which a running or wall-sliding character plays");
+                }
+            }
+
+            foreach (var song in new[] { Gui.ConsoleScript.MusicSong, Gui.ConsoleScript.BattleSong })
+            {
+                if (Audio.FindSong(song) == null)
+                {
+                    errors.Add($"{AudioFile}: has no song '{song}', which the console's 'play {song}' starts");
+                }
+            }
+
             var width = Grid.MapWidth;
             var height = Grid.MapHeight;
             foreach (var position in Player.SpawnPositions)

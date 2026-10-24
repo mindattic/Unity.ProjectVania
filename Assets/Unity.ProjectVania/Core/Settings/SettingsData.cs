@@ -744,6 +744,25 @@ namespace Unity.ProjectVania.Core.Settings
         public IReadOnlyList<AudioCue> Cues { get; private set; }
         public IReadOnlyList<Song> Songs { get; private set; }
 
+        /// <summary>The cue a running character makes (<c>Action_Run</c>'s <c>step2</c>), once per run-strip frame.</summary>
+        public string RunCue { get; private set; }
+
+        /// <summary>The cue a wall-sliding character makes (<c>Action_Wallslide</c>'s <c>drag</c>), once per clip.</summary>
+        public string WallSlideCue { get; private set; }
+
+        public Song FindSong(string name)
+        {
+            foreach (var s in Songs)
+            {
+                if (s.Name == name)
+                {
+                    return s;
+                }
+            }
+
+            return null;
+        }
+
         public AudioCue FindCue(string cue)
         {
             foreach (var c in Cues)
@@ -763,6 +782,8 @@ namespace Unity.ProjectVania.Core.Settings
             {
                 Volume = r.Number("volume", 0f, 1f),
                 Muted = r.Flag("muted"),
+                RunCue = r.Text("runCue"),
+                WallSlideCue = r.Text("wallSlideCue"),
                 Categories = r.Each("categories", c => new AudioCategory
                 {
                     Name = c.Text("name"),
@@ -780,6 +801,12 @@ namespace Unity.ProjectVania.Core.Settings
             foreach (var cue in data.Cues)
             {
                 r.Check(seen.Add(cue.Cue), "cues", $"lists '{cue.Cue}' twice");
+            }
+
+            var songs = new HashSet<string>();
+            foreach (var song in data.Songs)
+            {
+                r.Check(songs.Add(song.Name), "songs", $"lists '{song.Name}' twice");
             }
 
             return data;
