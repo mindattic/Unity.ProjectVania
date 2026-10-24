@@ -57,6 +57,17 @@ namespace Unity.ProjectVania
             var host = root.AddComponent<GameHost>();
             host.Initialize(settings);
 
+            // Letterbox bars are outside every camera's viewport rect, so nothing clears them on their own; this
+            // camera draws nothing (cullingMask 0) and runs before the game camera (lower depth) only to paint
+            // them black, full-screen, under whatever the game camera draws over it.
+            var letterboxObject = new GameObject("LetterboxCamera");
+            letterboxObject.transform.SetParent(root.transform, false);
+            var letterbox = letterboxObject.AddComponent<Camera>();
+            letterbox.clearFlags = CameraClearFlags.SolidColor;
+            letterbox.backgroundColor = Color.black;
+            letterbox.cullingMask = 0;
+            letterbox.depth = -1;
+
             var cameraObject = new GameObject("Camera");
             cameraObject.transform.SetParent(root.transform, false);
             cameraObject.transform.position = new Vector3(0f, 0f, -10f);
@@ -74,14 +85,18 @@ namespace Unity.ProjectVania
         {
             var panel = ScriptableObject.CreateInstance<PanelSettings>();
             panel.name = "ProjectVaniaPanel";
-            panel.scaleMode = PanelScaleMode.ScaleWithScreenSize;
-            panel.referenceResolution = new Vector2Int(PixelPerfect.ReferenceWidth, PixelPerfect.ReferenceHeight);
-            panel.screenMatchMode = PanelScreenMatchMode.Expand;
+            panel.themeStyleSheet = Resources.Load<ThemeStyleSheet>("UnityDefaultRuntimeTheme");
 
             var uiObject = new GameObject("UI");
             uiObject.transform.SetParent(parent, false);
             var document = uiObject.AddComponent<UIDocument>();
             document.panelSettings = panel;
+
+            // Fits the panel to the same viewport PixelPerfectCamera gave the game camera (both read the current
+            // Screen size through PixelPerfect.Fit), applied immediately rather than waiting for the first
+            // LateUpdate so the UI is never shown unscaled for a frame, and in edit-mode tests that run no frames.
+            var pixelPerfectUi = uiObject.AddComponent<PixelPerfectPanel>();
+            pixelPerfectUi.Apply(Screen.width, Screen.height);
         }
 
         /// <summary>Logs every error of the failed load and stops the game (quits a build, leaves Play mode in the Editor).</summary>

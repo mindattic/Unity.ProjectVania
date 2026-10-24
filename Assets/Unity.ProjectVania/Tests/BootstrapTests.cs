@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using NUnit.Framework;
 using Unity.ProjectVania.Core.Display;
 using Unity.ProjectVania.Core.Settings;
@@ -52,16 +53,21 @@ namespace Unity.ProjectVania.Tests
         public void RunComposesNothingOnBadSettings()
         {
             var source = new MemorySettingsSource(new DirectorySettingsSource(SettingsFolder)).Set(GameSettings.GridFile, "[]");
-            UnityEngine.TestTools.LogAssert.ignoreFailingMessages = true;
-            try
+
+            // What Startup itself reports for this fixture is also exactly what Stop must log, one error at a
+            // time: this is the "stop with every error listed" behaviour the ticket asks for, not just a quiet
+            // failure, so the test expects each line rather than swallowing them with ignoreFailingMessages.
+            var expected = Startup.LoadSettings(source);
+            Assert.That(expected.Succeeded, Is.False, "the fixture should actually be invalid");
+
+            UnityEngine.TestTools.LogAssert.Expect(LogType.Error,
+                $"[ProjectVania] The settings in {expected.Source} are invalid ({expected.Errors.Count} problem(s)); stopping.");
+            foreach (var error in expected.Errors)
             {
-                Assert.That(Bootstrap.Run(source), Is.Null);
-            }
-            finally
-            {
-                UnityEngine.TestTools.LogAssert.ignoreFailingMessages = false;
+                UnityEngine.TestTools.LogAssert.Expect(LogType.Error, $"[ProjectVania] {error}");
             }
 
+            Assert.That(Bootstrap.Run(source), Is.Null);
             Assert.That(Bootstrap.Current, Is.Null);
             Assert.That(GameObject.Find(Bootstrap.RootName), Is.Null);
         }
@@ -76,14 +82,28 @@ namespace Unity.ProjectVania.Tests
             Assert.That(Profiles.IsConfigured, Is.True);
             Assert.That(Profiles.Current.Settings, Is.Not.Null);
 
-            var camera = host.GetComponentInChildren<Camera>();
+            var pixelPerfect = host.GetComponentInChildren<PixelPerfectCamera>();
+            var camera = pixelPerfect.GetComponent<Camera>();
             Assert.That(camera.orthographic, Is.True);
             Assert.That(camera.orthographicSize, Is.EqualTo(PixelPerfect.OrthographicSize(host.Settings.Grid.PixelsPerUnit)));
-            Assert.That(camera.GetComponent<PixelPerfectCamera>(), Is.Not.Null);
 
-            var document = host.GetComponentInChildren<UIDocument>();
-            Assert.That(document.panelSettings.scaleMode, Is.EqualTo(PanelScaleMode.ScaleWithScreenSize));
-            Assert.That(document.panelSettings.referenceResolution, Is.EqualTo(new Vector2Int(800, 600)));
+            var letterbox = host.GetComponentsInChildren<Camera>().Single(c => c != camera);
+            Assert.That(letterbox.clearFlags, Is.EqualTo(CameraClearFlags.SolidColor));
+            Assert.That(letterbox.backgroundColor, Is.EqualTo(Color.black));
+            Assert.That(letterbox.cullingMask, Is.EqualTo(0));
+            Assert.That(letterbox.depth, Is.LessThan(camera.depth), "the letterbox must clear before the game camera draws over it");
+
+            var panel = host.GetComponentInChildren<PixelPerfectPanel>();
+            var document = panel.GetComponent<UIDocument>();
+            Assert.That(document.panelSettings.themeStyleSheet, Is.Not.Null);
+            Assert.That(document.panelSettings.scaleMode, Is.EqualTo(PanelScaleMode.ConstantPixelSize));
+            Assert.That(document.panelSettings.scale, Is.EqualTo(panel.Viewport.Scale > 0 ? panel.Viewport.Scale : panel.Viewport.Width / (float)PixelPerfect.ReferenceWidth));
+            // The inline style values set by PixelPerfectPanel.Apply, not resolvedStyle: nothing has ticked a
+            // layout pass in an edit-mode test, so resolvedStyle would still read the pre-layout defaults.
+            var style = document.rootVisualElement.style;
+            Assert.That(style.width.value.value, Is.EqualTo(panel.Viewport.Width));
+            Assert.That(style.height.value.value, Is.EqualTo(panel.Viewport.Height));
+            Assert.That(style.left.value.value, Is.EqualTo(panel.Viewport.X));
         }
 
         [Test]

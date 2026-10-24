@@ -26,6 +26,10 @@ switch ($Mode) {
         $unityArgs += @("-quit", "-executeMethod", "Unity.ProjectVania.EditorTools.ProjectBuilder.Build", "-buildOutput", $Output)
     }
 }
-$process = Start-Process -FilePath $unity -ArgumentList $unityArgs -Wait -PassThru
+# -ArgumentList takes a string[] but Windows PowerShell 5.1 joins it with spaces and reparses it, so an
+# unquoted element containing a space (a project path, -Output, -Filter) would split into two arguments.
+# Quoting every element keeps each one intact regardless of what it contains.
+$quotedArgs = $unityArgs | ForEach-Object { '"' + $_ + '"' }
+$process = Start-Process -FilePath $unity -ArgumentList $quotedArgs -Wait -PassThru
 Write-Host "Unity exited $($process.ExitCode); log: $log"
 exit $process.ExitCode
