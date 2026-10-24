@@ -21,4 +21,24 @@ namespace Unity.ProjectVania.Core.Characters
             To = to;
         }
     }
+
+    /// <summary>
+    /// [ or ] moved <see cref="Player"/> from driving character <see cref="From"/> to character <see cref="To"/> (indices
+    /// into <c>GameWorld.Characters</c>), so the camera can follow the new one.
+    /// </summary>
+    public readonly struct DrivenCharacterChanged : Commands.IGameEvent
+    {
+        public long Tick { get; }
+        public Commands.PlayerId Player { get; }
+        public int From { get; }
+        public int To { get; }
+
+        public DrivenCharacterChanged(long tick, Commands.PlayerId player, int from, int to)
+        {
+            Tick = tick;
+            Player = player;
+            From = from;
+            To = to;
+        }
+    }
 }

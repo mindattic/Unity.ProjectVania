@@ -1,6 +1,17 @@
 {
   "_source": "CharacterSheet and UnitSize (RECONSTRUCTION 4.1, 4.8). Owner decision 2026-10-23: Shanoa and Leo are playable as well as Morris (built by U.VAN-T25); in the original only Morris was, the others by editing a field. A move set lists the actions a character can perform.",
   "defaultCharacter": "Morris",
+  "nameTag": {
+    "_about": "SceneManager.DrawText (RECONSTRUCTION 6, item 4): every character's name written twice in Arial 10, centred on its x and Top-aligned, red at (X - 1, Y - 100) and then yellow at (X, Y). TextWriter's Top alignment lifts the text by its measured height * fontSize (10) * 0.4; Arial 10 measures 16 px high, so 64 px: the yellow name sits at the top of the 64 px frame and the red one 100 px above it. Drawn over every character, after all of them.",
+    "font": "Arial",
+    "fontPoints": 10,
+    "lineHeight": 16,
+    "topAlignFactor": 0.4,
+    "labels": [
+      { "colour": "Red", "offset": [-1, -100] },
+      { "colour": "Yellow", "offset": [0, 0] }
+    ]
+  },
   "characters": [
     {
       "name": "Morris",

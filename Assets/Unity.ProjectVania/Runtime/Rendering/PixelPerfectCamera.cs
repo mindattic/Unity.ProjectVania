@@ -52,6 +52,8 @@ namespace Unity.ProjectVania
             var cam = GetComponent<Camera>();
             cam.orthographic = true;
             cam.orthographicSize = PixelPerfect.OrthographicSize(_ppu);
+            // The viewport is always the reference's 4:3, even when a tiny window rounds it to a pixel or two.
+            cam.aspect = PixelPerfect.ReferenceWidth / (float)PixelPerfect.ReferenceHeight;
             cam.rect = new Rect(view.X / (float)screenWidth, view.Y / (float)screenHeight, view.Width / (float)screenWidth, view.Height / (float)screenHeight);
         }
     }

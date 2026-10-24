@@ -766,6 +766,8 @@ Each is decided in the BIBLE: keep (it is the game's feel), fix, or drop.
     ellipse and circle helpers, `Event`/`Zone`/`EventManager`, `Time` (an empty class), the `Layer` timer.
     Not in the project file at all: `Gamepad.cs` (a DirectInput `MyGamePad` wrapper that needs a
     `Soopah.Xna.Input` library which is not here), `Cursor2D.cs`, `Managers\MapEditor.cs`.
+16. `CyclePlayerLeft/Right` only change `playerIndex`; the character switched away from keeps its `movement`, so one
+    left mid-run keeps running (and wall sliding at a wall) with no one driving it (traced).
 
 ## 16. What the original does not have (so the rebuild must not invent it)
 

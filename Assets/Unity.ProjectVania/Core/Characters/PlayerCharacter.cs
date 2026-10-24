@@ -65,8 +65,39 @@ namespace Unity.ProjectVania.Core.Characters
             Reset(spawn);
         }
 
+        /// <summary>
+        /// A character of <paramref name="definition"/> (characters.json: its sheet and size) called <paramref name="name"/>
+        /// (<c>Player.Name</c>, drawn over it; RECONSTRUCTION 4.1).
+        /// </summary>
+        public PlayerCharacter(PlayerData tuning, Character definition, PixelVector spawn, string name)
+            : this(tuning, (definition ?? throw new ArgumentNullException(nameof(definition))).UnitSize, spawn)
+        {
+            Definition = definition;
+            Name = name;
+        }
+
+        /// <summary>Which character this is (its sheet, gender and size), or null for a bare physics body.</summary>
+        public Character Definition { get; }
+
+        /// <summary>The random name drawn over the character (<c>g.RandomName</c>), or null if it was given none.</summary>
+        public string Name { get; }
+
         /// <summary>The bottom centre of the feet, in pixels, y down.</summary>
         public PixelVector Position => _position;
+
+        /// <summary>Where the last step started (or the reset put it), for presentation to interpolate from.</summary>
+        public PixelVector PreviousPosition { get; private set; }
+
+        /// <summary>The position <paramref name="alpha"/> of the way from <see cref="PreviousPosition"/> to <see cref="Position"/> (the world's <c>Alpha</c>).</summary>
+        public PixelVector PositionAt(float alpha) => new PixelVector(
+            PreviousPosition.X + (_position.X - PreviousPosition.X) * alpha,
+            PreviousPosition.Y + (_position.Y - PreviousPosition.Y) * alpha);
+
+        /// <summary>
+        /// Whether the sprite is drawn mirrored (<c>Player.Draw</c>'s <c>swap</c>): the art faces left, so facing right
+        /// flips it, and a wall jump inverts that. Facing 0 (before the first move) does not flip.
+        /// </summary>
+        public bool Flipped => (Facing == 1) != IsWallJumping;
 
         /// <summary>Pixels per second, y down.</summary>
         public PixelVector Velocity => _velocity;
@@ -109,6 +140,7 @@ namespace Unity.ProjectVania.Core.Characters
         public void Reset(PixelVector position)
         {
             _position = position;
+            PreviousPosition = position;
             _velocity = default;
             SetAction(ActionKind.Falling);
             Terrain = TerrainState.InAir;
@@ -173,6 +205,9 @@ namespace Unity.ProjectVania.Core.Characters
         }
 
         // ---- The frame (Player.Update) ----
+
+        /// <summary>Marks where this step starts, so presentation interpolates from here (called every step, frozen or not).</summary>
+        internal void BeginStep() => PreviousPosition = _position;
 
         /// <summary>One frame of <c>Player.Update</c> on <paramref name="map"/>, <paramref name="elapsed"/> seconds long.</summary>
         public void Step(Map map, float elapsed)

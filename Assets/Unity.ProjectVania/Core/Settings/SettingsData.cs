@@ -159,6 +159,10 @@ namespace Unity.ProjectVania.Core.Settings
     public sealed class CharacterData
     {
         public string DefaultCharacter { get; private set; }
+
+        /// <summary>How every character's name is drawn over it (RECONSTRUCTION 6, item 4).</summary>
+        public NameTagData NameTag { get; private set; }
+
         public IReadOnlyList<Character> Characters { get; private set; }
 
         public Character Find(string name)
@@ -179,6 +183,7 @@ namespace Unity.ProjectVania.Core.Settings
             var data = new CharacterData
             {
                 DefaultCharacter = r.Text("defaultCharacter"),
+                NameTag = r.Section("nameTag", NameTagData.Read),
                 Characters = r.Each("characters", Character.Read),
             };
             r.Check(data.Find(data.DefaultCharacter) != null, "defaultCharacter", "must name one of the characters");
@@ -190,6 +195,53 @@ namespace Unity.ProjectVania.Core.Settings
 
             return data;
         }
+    }
+
+    /// <summary>
+    /// characters.json's <c>nameTag</c>: <c>SceneManager.DrawText</c>'s two writes of each name, in the original's pixels
+    /// relative to the character's feet, y down.
+    /// </summary>
+    public sealed class NameTagData
+    {
+        public string Font { get; private set; }
+
+        /// <summary>The sprite font's size in points (TextWriter's <c>fontSize</c> and the .spritefont's <c>Size</c>).</summary>
+        public float FontPoints { get; private set; }
+
+        /// <summary>The font's measured line height in pixels (<c>SpriteFont.MeasureString(name).Y</c>).</summary>
+        public float LineHeight { get; private set; }
+
+        /// <summary>TextWriter's Top alignment factor: the text is lifted by line height * points * this.</summary>
+        public float TopAlignFactor { get; private set; }
+
+        /// <summary>The writes, in draw order (later ones over earlier ones).</summary>
+        public IReadOnlyList<NameTagLabel> Labels { get; private set; }
+
+        /// <summary>How far Top alignment lifts the text, in pixels (64 for Arial 10).</summary>
+        public float TopAlignLift => LineHeight * FontPoints * TopAlignFactor;
+
+        internal static NameTagData Read(SettingsReader r) => new NameTagData
+        {
+            Font = r.Text("font"),
+            FontPoints = r.Positive("fontPoints"),
+            LineHeight = r.Positive("lineHeight"),
+            TopAlignFactor = r.Number("topAlignFactor", 0f, 10f),
+            Labels = r.Each("labels", NameTagLabel.Read),
+        };
+    }
+
+    public sealed class NameTagLabel
+    {
+        public SettingsColour Colour { get; private set; }
+
+        /// <summary>From the feet to the text's anchor (its top centre before Top alignment lifts it), pixels, y down.</summary>
+        public Pair Offset { get; private set; }
+
+        internal static NameTagLabel Read(SettingsReader r) => new NameTagLabel
+        {
+            Colour = r.Choice<SettingsColour>("colour"),
+            Offset = r.Pair("offset", -1000f, 1000f),
+        };
     }
 
     public sealed class Character

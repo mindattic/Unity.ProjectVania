@@ -103,10 +103,28 @@ namespace Unity.ProjectVania.Tests
             Assert.That(document.panelSettings.scale, Is.EqualTo(panel.Viewport.Scale > 0 ? panel.Viewport.Scale : panel.Viewport.Width / (float)PixelPerfect.ReferenceWidth));
             // The inline style values set by PixelPerfectPanel.Apply, not resolvedStyle: nothing has ticked a
             // layout pass in an edit-mode test, so resolvedStyle would still read the pre-layout defaults.
+            // The panel's units are screen pixels over its scale, so the root is the 800 x 600 reference itself.
             var style = document.rootVisualElement.style;
-            Assert.That(style.width.value.value, Is.EqualTo(panel.Viewport.Width));
-            Assert.That(style.height.value.value, Is.EqualTo(panel.Viewport.Height));
-            Assert.That(style.left.value.value, Is.EqualTo(panel.Viewport.X));
+            var scale = document.panelSettings.scale;
+            Assert.That(style.width.value.value, Is.EqualTo(PixelPerfect.ReferenceWidth).Within(0.5f));
+            Assert.That(style.height.value.value, Is.EqualTo(PixelPerfect.ReferenceHeight).Within(0.5f));
+            Assert.That(style.left.value.value, Is.EqualTo(panel.Viewport.X / scale).Within(1e-3f));
+        }
+
+        [Test]
+        public void ThePanelRootIsTheReferenceAtEveryMagnification()
+        {
+            var host = Bootstrap.Run(new DirectorySettingsSource(SettingsFolder));
+            var panel = host.GetComponentInChildren<PixelPerfectPanel>();
+            var style = panel.GetComponent<UIDocument>().rootVisualElement.style;
+
+            // 1920 x 1200 holds the reference twice over (1600 x 1200), 160 screen pixels in from the left.
+            panel.Apply(1920, 1200);
+            Assert.That(panel.Viewport.Scale, Is.EqualTo(2));
+            Assert.That(style.left.value.value, Is.EqualTo(80f));
+            Assert.That(style.top.value.value, Is.EqualTo(0f));
+            Assert.That(style.width.value.value, Is.EqualTo(800f));
+            Assert.That(style.height.value.value, Is.EqualTo(600f));
         }
 
         [Test]

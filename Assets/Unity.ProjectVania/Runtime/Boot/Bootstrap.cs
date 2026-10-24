@@ -1,4 +1,5 @@
 using System;
+using Unity.ProjectVania.Core.Characters;
 using Unity.ProjectVania.Core.Display;
 using Unity.ProjectVania.Core.Settings;
 using UnityEngine;
@@ -10,7 +11,7 @@ namespace Unity.ProjectVania
     /// The code-built bootstrap (RECONSTRUCTION 0): the project's one scene is empty, and this composes everything
     /// at start-up instead of Inspector wiring. It points the shared profiles at the player's data folder, loads the
     /// settings registry (stopping with every error listed if a file is bad), then builds the pixel-perfect camera,
-    /// the game host and the UI Toolkit root at the 800x600 reference.
+    /// the game host, a sprite per character, and the UI Toolkit root (with the characters' names) at the 800x600 reference.
     /// </summary>
     public static class Bootstrap
     {
@@ -76,12 +77,32 @@ namespace Unity.ProjectVania
             camera.backgroundColor = new Color32(100, 149, 237, 255); // XNA CornflowerBlue, the original's clear colour
             var pixelPerfect = cameraObject.AddComponent<PixelPerfectCamera>();
             pixelPerfect.PixelsPerUnit = settings.Grid.PixelsPerUnit;
+            cameraObject.AddComponent<FollowDrivenCharacter>().Initialize(host.World, host.Input.Player, settings.Grid.PixelsPerUnit);
 
-            BuildUi(root.transform);
+            BuildCharacters(root.transform, host, settings);
+            var ui = BuildUi(root.transform);
+            ui.gameObject.AddComponent<NameTags>().Initialize(host.World, settings.Characters.NameTag, camera, settings.Grid.PixelsPerUnit, ui.rootVisualElement);
             return host;
         }
 
-        static void BuildUi(Transform parent)
+        /// <summary>One sprite per Core character, drawn from its sheet's strips (RECONSTRUCTION 4.8).</summary>
+        static void BuildCharacters(Transform parent, GameHost host, GameSettings settings)
+        {
+            var group = new GameObject("Characters");
+            group.transform.SetParent(parent, false);
+            var art = new CharacterArt(settings.Animations, settings.Grid.PixelsPerUnit);
+            var characters = host.World.Characters;
+            for (var i = 0; i < characters.Count; i++)
+            {
+                var definition = characters[i].Definition ?? settings.Characters.Find(settings.Characters.DefaultCharacter);
+                var view = new GameObject($"Character {i} ({characters[i].Name})", typeof(SpriteRenderer)).AddComponent<CharacterView>();
+                view.transform.SetParent(group.transform, false);
+                var animator = new CharacterAnimator(settings.Animations.Find(definition.Sheet));
+                view.Initialize(host.World, i, animator, art, settings.Grid.PixelsPerUnit);
+            }
+        }
+
+        static UIDocument BuildUi(Transform parent)
         {
             var panel = ScriptableObject.CreateInstance<PanelSettings>();
             panel.name = "ProjectVaniaPanel";
@@ -97,6 +118,7 @@ namespace Unity.ProjectVania
             // LateUpdate so the UI is never shown unscaled for a frame, and in edit-mode tests that run no frames.
             var pixelPerfectUi = uiObject.AddComponent<PixelPerfectPanel>();
             pixelPerfectUi.Apply(Screen.width, Screen.height);
+            return document;
         }
 
         /// <summary>Logs every error of the failed load and stops the game (quits a build, leaves Play mode in the Editor).</summary>

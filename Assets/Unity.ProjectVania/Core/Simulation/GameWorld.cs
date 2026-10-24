@@ -50,9 +50,32 @@ namespace Unity.ProjectVania.Core.Simulation
             }
         }
 
+        /// <summary>
+        /// The shipped world: one <paramref name="character"/> at each of player.json's spawn positions, each given a
+        /// random name from <paramref name="names"/>' table for its gender drawn with <paramref name="random"/>
+        /// (<c>new Player(position, gender)</c> and <c>g.RandomName</c>, RECONSTRUCTION 4.1).
+        /// </summary>
+        public GameWorld(Map map, PlayerData player, Character character, NameData names, Random random)
+            : this(map)
+        {
+            _player = player ?? throw new ArgumentNullException(nameof(player));
+            if (character == null) throw new ArgumentNullException(nameof(character));
+            if (names == null) throw new ArgumentNullException(nameof(names));
+            if (random == null) throw new ArgumentNullException(nameof(random));
+            foreach (var spawn in player.SpawnPositions)
+            {
+                var name = RandomName.Pick(names.For(character.Gender), random);
+                _characters.Add(new PlayerCharacter(player, character, new PixelVector(spawn.X, spawn.Y), name));
+            }
+        }
+
         readonly List<PlayerCharacter> _characters = new List<PlayerCharacter>();
         readonly PlayerData _player;
         ActionKind[] _actionsBefore = Array.Empty<ActionKind>();
+
+        // Which character each player drives, once [ or ] has moved them off their own (the original's
+        // SceneManager.playerIndex, one per player instead of one global).
+        readonly Dictionary<int, int> _driven = new Dictionary<int, int>();
 
         /// <summary>The collision grid (RECONSTRUCTION 5), or null for a world built without one.</summary>
         public Map Map { get; }
@@ -61,11 +84,23 @@ namespace Unity.ProjectVania.Core.Simulation
         public IReadOnlyList<PlayerCharacter> Characters => _characters;
 
         /// <summary>
-        /// The character <paramref name="player"/>'s commands drive: player n drives character n (the original's
-        /// <c>Scene.CurrentPlayer</c>, PlayerIndex 0), or null if there is none.
+        /// The index into <see cref="Characters"/> of the character <paramref name="player"/>'s commands drive and the
+        /// camera follows (the original's <c>Scene.PlayerIndex</c>): player n starts on character n and [ / ] move it
+        /// (<see cref="CycleCharacter"/>). -1 if there is none.
         /// </summary>
-        public PlayerCharacter Driven(PlayerId player) =>
-            player.IsValid && player.Value < _characters.Count ? _characters[player.Value] : null;
+        public int DrivenIndex(PlayerId player)
+        {
+            if (!player.IsValid) return -1;
+            if (_driven.TryGetValue(player.Value, out var index)) return index;
+            return player.Value < _characters.Count ? player.Value : -1;
+        }
+
+        /// <summary>The character <paramref name="player"/> drives (<c>Scene.CurrentPlayer</c>), or null if there is none.</summary>
+        public PlayerCharacter Driven(PlayerId player)
+        {
+            var index = DrivenIndex(player);
+            return index >= 0 ? _characters[index] : null;
+        }
 
         /// <summary>Steps taken so far.</summary>
         public long Tick { get; private set; }
@@ -119,7 +154,11 @@ namespace Unity.ProjectVania.Core.Simulation
         void Step()
         {
             if (_actionsBefore.Length != _characters.Count) _actionsBefore = new ActionKind[_characters.Count];
-            for (int i = 0; i < _characters.Count; i++) _actionsBefore[i] = _characters[i].Action;
+            for (int i = 0; i < _characters.Count; i++)
+            {
+                _actionsBefore[i] = _characters[i].Action;
+                _characters[i].BeginStep();
+            }
 
             while (_pending.Count > 0) Apply(_pending.Dequeue());
 
@@ -188,6 +227,10 @@ namespace Unity.ProjectVania.Core.Simulation
                     Driven(jump.Player)?.Jump();
                     break;
 
+                case CycleCharacter cycle:
+                    Cycle(cycle.Player, cycle.Direction);
+                    break;
+
                 // Command_ToggleConsole flips the console down or up. The original changed the state only when the
                 // slide ended (opening) or on every frame of it (closing); until the console's slide is built (A11)
                 // the state changes at once.
@@ -206,6 +249,27 @@ namespace Unity.ProjectVania.Core.Simulation
                     _events.Add(new FullscreenToggled(Tick));
                     break;
             }
+        }
+
+        /// <summary>
+        /// <c>CyclePlayerLeft</c> / <c>CyclePlayerRight</c>: drive the previous or next character, wrapping at either end.
+        /// The character left behind lets go of its direction (BIBLE defect 16 fixed): in the original it kept the
+        /// <c>movement</c> it last had, so a character switched away from mid-run ran on, undriven, forever.
+        /// </summary>
+        void Cycle(PlayerId player, int direction)
+        {
+            var from = DrivenIndex(player);
+            if (from < 0 || direction == 0) return;
+
+            var last = _characters.Count - 1;
+            var to = direction < 0
+                ? (from > 0 ? from - 1 : last)
+                : (from < last ? from + 1 : 0);
+            if (to == from) return;
+
+            _characters[from].StopMoving();
+            _driven[player.Value] = to;
+            _events.Add(new DrivenCharacterChanged(Tick, player, from, to));
         }
 
         void ChangeState(PlayerId player, GameState to)

@@ -44,13 +44,14 @@ namespace Unity.ProjectVania
             var view = PixelPerfect.Fit(screenWidth, screenHeight);
             Viewport = view;
 
+            // Below one whole magnification the reference itself was shrunk to fit (PixelPerfect.Fit), so the
+            // panel follows with the same fractional scale instead of a meaningless scale of zero.
+            var scale = view.Scale > 0 ? view.Scale : view.Width / (float)PixelPerfect.ReferenceWidth;
             var settings = Document.panelSettings;
             if (settings != null)
             {
                 settings.scaleMode = PanelScaleMode.ConstantPixelSize;
-                // Below one whole magnification the reference itself was shrunk to fit (PixelPerfect.Fit), so the
-                // panel follows with the same fractional scale instead of a meaningless scale of zero.
-                settings.scale = view.Scale > 0 ? view.Scale : view.Width / (float)PixelPerfect.ReferenceWidth;
+                settings.scale = scale;
             }
 
             var root = Document.rootVisualElement;
@@ -59,13 +60,16 @@ namespace Unity.ProjectVania
                 return;
             }
 
-            // UI Toolkit's screen space is top-down; PixelViewport's Y is bottom-left (RECONSTRUCTION 0's back
-            // buffer convention), so the top edge is the distance from the window's top to the viewport's top.
+            // The panel's own units are screen pixels divided by its scale, so the root is placed and sized in those:
+            // it is then exactly the 800 x 600 reference, and a child placed at reference pixel (x, y) lands on the
+            // game image's pixel (x, y) at any magnification. UI Toolkit's screen space is top-down; PixelViewport's
+            // Y is bottom-left (RECONSTRUCTION 0's back buffer convention), so the top edge is the distance from the
+            // window's top to the viewport's top.
             root.style.position = Position.Absolute;
-            root.style.left = view.X;
-            root.style.top = screenHeight - view.Y - view.Height;
-            root.style.width = view.Width;
-            root.style.height = view.Height;
+            root.style.left = view.X / scale;
+            root.style.top = (screenHeight - view.Y - view.Height) / scale;
+            root.style.width = view.Width / scale;
+            root.style.height = view.Height / scale;
             root.style.overflow = Overflow.Hidden;
         }
     }

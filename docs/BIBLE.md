@@ -94,6 +94,7 @@ standard.
 | 13 | `fade out` snaps clear when it finishes | **Fix**: it holds black until `fade in` or `fade off` |
 | 14 | `icon_poisondart` loads the parry icon; `icon_consecrate` unloaded | **Fix** in the data: each icon is its own file |
 | 15 | Unused library code (`Quad`, `LinkedList`, `TileGrid`, `Event`...) and files outside the project | **Drop**: no behaviour to keep |
+| 16 | `[` / `]` leave the character switched away from with its `movement` held, so one switched away from mid-run runs on, undriven, for ever | **Fix** (U.VAN-T10): the character left behind lets go of its direction (`Cancel_Move`) as the switch happens, so the twin stands still as it was meant to |
 
 **Audio.** Music never starts by itself, as in the original; only `play music` / `play battle` start it
 (§11). The XACT banks become a cue table in data (name, clip, volume in dB, loop, category), and the
@@ -121,7 +122,7 @@ collisions and the terrain machine, drag, bounds, the move, and the action, exac
 per-frame arithmetic is single precision with the frame XNA actually reported, `TimeSpan.FromTicks(166667)` =
 0.0166667 s (`FixedStepper.OriginalElapsedSeconds`), not 1/60: so the jump curve runs 35 frames and falls on the 36th,
 and the idle-wall timer drops on the 61st frame. Every figure is player.json's, including the ceiling test's 3 cells.
-Both characters simulate every Play step; player n's commands drive character n until `[` / `]` arrive with A7.
+Both characters simulate every Play step; player n starts on character n and `[` / `]` move it (A7, below).
 Defect 1's fix leaves `isJumping` clear on a kneeling jump, and with the ordinary ground checks back the idle test stands
 the character the same frame, so the kneel-jump "slide" is a one-frame nudge of about 2 px (the original's was barely
 3 px before it trapped him); A18's play-through should say whether it wants a longer slide. Defect 2 restores the 1 x 3
@@ -133,6 +134,28 @@ still reads the action as Kneeling before this step's physics run) is unaffected
 contact lasts (through the same air drag as any other horizontal speed, so it settles at the same 130 px/s a run
 settles to in the air), while the vertical jump curve and the passive wall slide are untouched; with `pushOff` off,
 the original's climb-then-pin behaviour is unchanged. Defect 7 is kept as the original.
+
+**Characters on screen (U.VAN-US-A7).** Core's `CharacterAnimator` is the original's `AnimationPlayer` and the
+`PlayAnimation` calls of `Player.cs`'s `Action_*` methods: the action picks the strip (Standing idle, Running run,
+Jumping jump only while the jump is live, Falling fall, WallSliding wallslide, Kneeling kneel, Sliding slide), a strip
+restarts only when it changes, and the clock advances by the drawn frame's time with the original's `while (time >
+frameTime)` step, looping or holding the last frame, at animations.json's frame times. The strips are the original
+PNGs under `Resources/Characters/<sheet>/`, imported unscaled and point-filtered by `CharacterArtImporter` (code, not
+Inspector), cut into 64 px frames pivoted at the bottom centre, so the sprite stands on the feet; Runtime draws
+characters in list order (a later one over an earlier one) at the position interpolated by the world's `Alpha`. The
+art faces left: facing right flips it and a wall jump inverts that; facing neither way (before the first move) does
+not flip. A sheet without a strip (Shanoa and Leo have only idle and run) plays idle instead of the original's
+`KeyNotFoundException` crash; U.VAN-T25 gives them their own moves. Both spawned characters are the default (Morris),
+as the original's two were. Each is named at spawn from names.json's table for its gender (defect 8's fix: every name
+can be picked), and `SceneManager.DrawText` is kept exactly: the name written twice in an Arial 10 equivalent
+(Unity's built-in Arial, 13 px for 10 pt at XNA's 96 dpi), centred, red at (X - 1, Y - 100) and then yellow at
+(X, Y), each lifted by TextWriter's Top alignment (16 px measured height x 10 x 0.4 = 64 px), so the yellow name sits
+on the frame's top edge and the red one 100 px above it; characters.json's `nameTag` holds every figure. The names are
+UI Toolkit labels in the pixel-perfect panel, placed each frame where the game camera shows the character; they move
+with the camera but do not yet scale with its zoom or rotate with it (A9). `[` / `]` (and L1 / R1) give each player id
+its own driven index, wrapping both ways as `CyclePlayerLeft/Right`, with an event for the camera; defect 16 is fixed.
+Until the camera story (A9) builds the original's modes, a stand-in keeps the camera centred on player one's driven
+character so the switch is visible.
 
 **Effects.** The one effect used, `filter`, is a 1 % radial vignette (its `refractSampler` was never
 bound, so it never refracted); it becomes a URP full-screen pass over the world camera with its
