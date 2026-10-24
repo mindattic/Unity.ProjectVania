@@ -260,6 +260,21 @@ namespace Unity.ProjectVania.Core.Tests
         }
 
         [Test]
+        public void MenuOpeningALevelWithNoItems_IsRejected()
+        {
+            // Levels 3 and 4 are kept as data with no items; opening one would leave nothing to highlight.
+            var e = LoadFails(Patched(GameSettings.MenuFile, t => t.Replace("\"target\": 1 }", "\"target\": 3 }")));
+            Assert.That(e.Errors.Single(), Does.Contain("opens level 3").And.Contain("no item"));
+        }
+
+        [Test]
+        public void MenuCueMissingFromTheAudioTable_IsRejected()
+        {
+            var e = LoadFails(Patched(GameSettings.MenuFile, t => t.Replace("\"openCue\": \"menu_open\"", "\"openCue\": \"menu_opne\"")));
+            Assert.That(e.Errors.Single(), Does.Contain("menu_opne"));
+        }
+
+        [Test]
         public void AnimationFrameCountThatDisagreesWithTheStrip_IsRejected()
         {
             var e = LoadFails(Patched(GameSettings.AnimationsFile, t => t.Replace("\"width\": 960, \"frames\": 15", "\"width\": 960, \"frames\": 14")));

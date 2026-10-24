@@ -3,7 +3,7 @@ codex: 1
 project: Unity.ProjectVania
 layer: research
 status: living
-updated: 2026-10-23
+updated: 2026-10-24
 ---
 
 # ProjectVania — reverse-engineering record
@@ -564,6 +564,13 @@ Behaviour: Up/Down move with wrap and play `menu_move`; Right/Enter/D/pad-right/
 exits**; "Toggle Fullscreen" toggles; every select then resets the highlight to item 0 of the current
 level. Left/A-key/pad-left/B/stick-left goes to the parent level, or **closes the menu from the
 root**. F12 toggles fullscreen inside the menu. The mouse is not used by the menu.
+
+Details read from `InputManager`'s menu methods (U.VAN-T13): going up a level (`Action_GoToParentMenuLevel`) plays no
+cue and highlights the parent's first item; `menu_select` plays before the item acts, Quit included; the menu's
+level and highlight are never reset when it opens or closes, so it reopens where it was left (`Action_GoToMenuRoot`
+exists and nothing calls it); every menu cue goes through `Audio.PlayAmbience`, so none plays while muted. The title
+and description are written with the same Lucida Console 14 as the items, top-left aligned. While the menu is drawn, the GUI's own `Cursor`
+(Screen mode, the hand at the OS mouse, section 8) is drawn over it.
 
 ## 10. The console
 

@@ -158,7 +158,7 @@ namespace Unity.ProjectVania.Core.Settings
                 }
             }
 
-            foreach (var cue in new[] { Console.LongCue, Console.ShortCue, Menu.MoveCue, Menu.SelectCue })
+            foreach (var cue in new[] { Console.LongCue, Console.ShortCue, Menu.MoveCue, Menu.SelectCue, Menu.OpenCue, Menu.CloseCue })
             {
                 if (Audio.FindCue(cue) == null)
                 {

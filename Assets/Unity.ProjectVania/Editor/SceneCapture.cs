@@ -1,8 +1,10 @@
 using System;
 using System.IO;
+using System.Reflection;
 using Unity.ProjectVania.Core.Commands;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace Unity.ProjectVania.EditorTools
 {
@@ -11,7 +13,7 @@ namespace Unity.ProjectVania.EditorTools
     /// command line (<c>unity.ps1 capture</c>, which runs with graphics). It boots the game as the player would, lets the
     /// characters fall and land and the Loose camera settle on player one, then captures the followed view, the view
     /// zoomed in and turned by the camera keys (the original's matrix: scale cubed, about the world origin), the map's
-    /// top-left corner, and that corner with the editor open. The UI Toolkit overlay (the names) is not in a camera render and so not in the pictures.
+    /// top-left corner, and that corner with the editor open. The main menu's pictures (menu, menu-video) draw the UI Toolkit overlay over the camera's picture; the others are the camera alone, without the names.
     /// </summary>
     public static class SceneCapture
     {
@@ -36,6 +38,22 @@ namespace Unity.ProjectVania.EditorTools
                 Save(camera, Path.Combine(output, "warmup.png")); // the pipeline's first render in a fresh editor is incomplete
                 File.Delete(Path.Combine(output, "warmup.png"));
                 Save(camera, Path.Combine(output, "play.png"));
+
+                // The main menu (U.VAN-US-A10) over the frozen world: the root, then the Video level, then closed again.
+                SaveWithUi(camera, host, Path.Combine(output, "play-ui.png"));
+                host.World.Submit(new ToggleMainMenu(PlayerId.One));
+                host.World.Advance(1.0 / 60);
+                Present(host);
+                SaveWithUi(camera, host, Path.Combine(output, "menu.png"));
+                host.World.Submit(new NavigateMenu(PlayerId.One, MenuInput.Down));
+                host.World.Submit(new NavigateMenu(PlayerId.One, MenuInput.Select));
+                host.World.Advance(1.0 / 60);
+                Present(host);
+                SaveWithUi(camera, host, Path.Combine(output, "menu-video.png"));
+                host.World.Submit(new NavigateMenu(PlayerId.One, MenuInput.Back));
+                host.World.Submit(new NavigateMenu(PlayerId.One, MenuInput.Back));
+                host.World.Advance(1.0 / 60);
+                Present(host);
 
                 // = held 20 steps (scale 1.2, magnified 1.728 about the world origin), then PageUp 20 (0.2 rad clockwise).
                 Nudge(host, CameraNudge.ZoomIn, 20);
@@ -78,6 +96,8 @@ namespace Unity.ProjectVania.EditorTools
             }
 
             host.GetComponentInChildren<MapView>().Present();
+            host.GetComponentInChildren<NameTags>()?.Place();
+            host.GetComponentInChildren<MainMenuView>()?.Refresh();
             var follow = host.GetComponentInChildren<GameCamera>();
             if (follow != null && follow.enabled)
             {
@@ -102,7 +122,70 @@ namespace Unity.ProjectVania.EditorTools
             }
         }
 
-        static void Save(Camera camera, string path)
+        static void Save(Camera camera, string path) => Save(camera, path, null);
+
+        /// <summary>
+        /// The camera's picture with the UI Toolkit panel drawn over it: the panel is pointed at the same render texture
+        /// (without clearing it) at a scale of 1 and repainted by UI Toolkit's own runtime loop, called directly because an
+        /// -executeMethod run ticks no player loop.
+        /// </summary>
+        static void SaveWithUi(Camera camera, GameHost host, string path)
+        {
+            var document = host.GetComponentInChildren<UIDocument>();
+            var panel = document.GetComponent<PixelPerfectPanel>();
+            var settings = document.panelSettings;
+            Save(camera, path, target =>
+            {
+                var previous = settings.targetTexture;
+                try
+                {
+                    settings.clearColor = false;
+                    settings.targetTexture = target;
+                    panel.Apply(800, 600);
+                    host.GetComponentInChildren<NameTags>()?.Place();
+                    // Lay out first, then draw exactly once: the texture is not cleared, so a second repaint would draw
+                    // the translucent menu over itself.
+                    PumpPanels("UpdatePanels");
+                    PumpPanels("UpdatePanels", "RepaintPanels", "RenderOffscreenPanels");
+                }
+                finally
+                {
+                    settings.targetTexture = previous;
+                    panel.Apply(Screen.width, Screen.height);
+                }
+            });
+        }
+
+        static void PumpPanels(params string[] steps)
+        {
+            var utility = typeof(UIDocument).Assembly.GetType("UnityEngine.UIElements.UIElementsRuntimeUtility");
+            if (utility == null)
+            {
+                throw new InvalidOperationException("UIElementsRuntimeUtility not found; the UI cannot be captured.");
+            }
+
+            const BindingFlags any = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+            foreach (var name in steps)
+            {
+                var method = utility.GetMethod(name, any);
+                if (method == null)
+                {
+                    throw new InvalidOperationException($"UIElementsRuntimeUtility.{name} not found; the UI cannot be captured.");
+                }
+
+                var parameters = method.GetParameters();
+                var arguments = new object[parameters.Length];
+                for (var i = 0; i < parameters.Length; i++)
+                {
+                    // RepaintPanels(bool onlyOffscreen): the panel now draws into the capture's texture, which is offscreen.
+                    arguments[i] = parameters[i].ParameterType == typeof(bool) ? (object)true : null;
+                }
+
+                method.Invoke(null, arguments);
+            }
+        }
+
+        static void Save(Camera camera, string path, Action<RenderTexture> overlay)
         {
             var target = new RenderTexture(800, 600, 24, RenderTextureFormat.ARGB32);
             var previousRect = camera.rect;
@@ -116,6 +199,7 @@ namespace Unity.ProjectVania.EditorTools
                 camera.aspect = 800f / 600f;
                 camera.targetTexture = target;
                 camera.Render();
+                overlay?.Invoke(target);
                 RenderTexture.active = target;
                 var image = new Texture2D(800, 600, TextureFormat.RGB24, false);
                 image.ReadPixels(new Rect(0, 0, 800, 600), 0, 0);

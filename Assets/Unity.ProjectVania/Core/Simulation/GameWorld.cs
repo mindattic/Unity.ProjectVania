@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Unity.ProjectVania.Core.Characters;
 using Unity.ProjectVania.Core.Commands;
+using Unity.ProjectVania.Core.Menus;
 using Unity.ProjectVania.Core.Settings;
 using Unity.ProjectVania.Core.Viewing;
 using Unity.ProjectVania.Core.World;
@@ -31,6 +32,12 @@ namespace Unity.ProjectVania.Core.Simulation
         {
         }
 
+        /// <summary>A world with no map and no characters, with menu.json's main menu (the menu tests).</summary>
+        public GameWorld(MenuData menu)
+        {
+            Menu = new MainMenu(menu ?? throw new ArgumentNullException(nameof(menu)));
+        }
+
         /// <summary>A world on <paramref name="map"/> (the bridge level, <see cref="Map.FromSettings"/>) with no characters.</summary>
         public GameWorld(Map map)
         {
@@ -58,11 +65,12 @@ namespace Unity.ProjectVania.Core.Simulation
         /// The shipped world: one <paramref name="character"/> at each of player.json's spawn positions, each given a
         /// random name from <paramref name="names"/>' table for its gender drawn with <paramref name="random"/>
         /// (<c>new Player(position, gender)</c> and <c>g.RandomName</c>, RECONSTRUCTION 4.1); with <paramref name="camera"/>,
-        /// a camera for each character's player (<see cref="Camera"/>).
+        /// a camera for each character's player (<see cref="Camera"/>); with <paramref name="menu"/>, the main menu (<see cref="Menu"/>).
         /// </summary>
-        public GameWorld(Map map, PlayerData player, Character character, NameData names, Random random, CameraData camera = null)
+        public GameWorld(Map map, PlayerData player, Character character, NameData names, Random random, CameraData camera = null, MenuData menu = null)
             : this(map)
         {
+            if (menu != null) Menu = new MainMenu(menu);
             _player = player ?? throw new ArgumentNullException(nameof(player));
             if (character == null) throw new ArgumentNullException(nameof(character));
             if (names == null) throw new ArgumentNullException(nameof(names));
@@ -102,6 +110,12 @@ namespace Unity.ProjectVania.Core.Simulation
 
         /// <summary>The collision grid (RECONSTRUCTION 5), or null for a world built without one.</summary>
         public Map Map { get; }
+
+        /// <summary>
+        /// The main menu (RECONSTRUCTION 9.2), or null for a world built without menu.json; without one, Esc still opens
+        /// and closes the MainMenu state and Back closes it, but nothing is selected and no cue is named.
+        /// </summary>
+        public MainMenu Menu { get; }
 
         /// <summary>Every character, all simulated each Play step whether driven or not (RECONSTRUCTION 4).</summary>
         public IReadOnlyList<PlayerCharacter> Characters => _characters;
@@ -235,9 +249,10 @@ namespace Unity.ProjectVania.Core.Simulation
                     ChangeState(set.Player, set.State);
                     break;
 
-                // Action_ToggleMainMenu: from the menu always back to Play, even if it was opened from the editor.
+                // Action_ToggleMainMenu: from the menu always back to Play (even if it was opened from the editor or the
+                // console), playing menu_close; from anything else into the menu, playing menu_open.
                 case ToggleMainMenu toggle:
-                    ChangeState(toggle.Player, State == GameState.MainMenu ? GameState.Play : GameState.MainMenu);
+                    ToggleMenu(toggle.Player);
                     break;
 
                 // ToggleMapEditor: from the editor to Play with the camera back on LoosePlayer; from anything else (even
@@ -300,9 +315,8 @@ namespace Unity.ProjectVania.Core.Simulation
                     ChangeState(toggle.Player, ConsoleOpen ? GameState.Console : GameState.Play);
                     break;
 
-                // Left / B at the menu's root closes it (Action_ToggleMainMenu); the menu's other levels come with A10.
-                case NavigateMenu navigate when navigate.Input == MenuInput.Back && State == GameState.MainMenu:
-                    ChangeState(navigate.Player, GameState.Play);
+                case NavigateMenu navigate when State == GameState.MainMenu:
+                    Navigate(navigate.Player, navigate.Input);
                     break;
 
                 case CycleCameraMode cycle:
@@ -323,6 +337,65 @@ namespace Unity.ProjectVania.Core.Simulation
                     _events.Add(new FullscreenToggled(Tick));
                     break;
             }
+        }
+
+        void ToggleMenu(PlayerId player)
+        {
+            var opening = State != GameState.MainMenu;
+            Cue(opening ? Menu?.Data.OpenCue : Menu?.Data.CloseCue);
+            ChangeState(player, opening ? GameState.MainMenu : GameState.Play);
+        }
+
+        /// <summary>
+        /// <c>CheckInput_MainMenu</c>'s menu actions. Back: at the root it closes the menu (<c>Action_ToggleMainMenu</c>),
+        /// otherwise it goes up a level, silently (<c>Action_GoToParentMenuLevel</c>). Up / Down move with wrap and play
+        /// <c>menu_move</c>. Select plays <c>menu_select</c>, then does the item's action: Open shows its level, Quit asks
+        /// the program to exit (<c>Game.Exit()</c>), ToggleFullscreen flips the window (<c>Action_ToggleFullscreen</c>).
+        /// </summary>
+        void Navigate(PlayerId player, MenuInput input)
+        {
+            if (Menu == null)
+            {
+                if (input == MenuInput.Back) ToggleMenu(player);
+                return;
+            }
+
+            switch (input)
+            {
+                case MenuInput.Back:
+                    if (Menu.AtRoot) ToggleMenu(player);
+                    else Menu.Back();
+                    break;
+
+                case MenuInput.Up:
+                    Cue(Menu.Data.MoveCue);
+                    Menu.Up();
+                    break;
+
+                case MenuInput.Down:
+                    Cue(Menu.Data.MoveCue);
+                    Menu.Down();
+                    break;
+
+                case MenuInput.Select:
+                    Cue(Menu.Data.SelectCue);
+                    switch (Menu.Select())
+                    {
+                        case MenuAction.Quit:
+                            _events.Add(new QuitRequested(Tick));
+                            break;
+                        case MenuAction.ToggleFullscreen:
+                            _events.Add(new FullscreenToggled(Tick));
+                            break;
+                    }
+
+                    break;
+            }
+        }
+
+        void Cue(string cue)
+        {
+            if (!string.IsNullOrEmpty(cue)) _events.Add(new CueRequested(Tick, cue));
         }
 
         /// <summary>What a camera in <paramref name="mode"/> follows: the editor cursor for LooseCursor, else the driven character.</summary>

@@ -1,5 +1,5 @@
 {
-  "_source": "Gui/MainMenu (RECONSTRUCTION 9.2). Level 0 is the root; its parent -1 closes the menu. An item's action is one of Open (go to the level in target), None, Quit, ToggleFullscreen. Levels 3 and 4 exist in the original and are unreachable; kept as data.",
+  "_source": "Gui/MainMenu (RECONSTRUCTION 9.2). Level 0 is the root; its parent -1 closes the menu. An item's action is one of Open (go to the level in target), None, Quit, ToggleFullscreen. Levels 3 and 4 exist in the original and are unreachable; kept as data. openCue and closeCue play as the menu opens and closes (Esc, Start, or Back at the root), moveCue on every Up or Down, selectCue on every select (going up a level plays nothing). The text is Lucida.spritefont, Lucida Console 14.",
   "background": "menu1",
   "backgroundAlpha": 0.8,
   "arrow": "arrow1",
@@ -14,6 +14,10 @@
   "textColour": "White",
   "moveCue": "menu_move",
   "selectCue": "menu_select",
+  "openCue": "menu_open",
+  "closeCue": "menu_close",
+  "font": "Lucida Console",
+  "fontPoints": 14,
   "levels": [
     {
       "title": "Main Menu",

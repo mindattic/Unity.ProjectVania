@@ -11,7 +11,8 @@ namespace Unity.ProjectVania
     /// The code-built bootstrap (RECONSTRUCTION 0): the project's one scene is empty, and this composes everything
     /// at start-up instead of Inspector wiring. It points the shared profiles at the player's data folder, loads the
     /// settings registry (stopping with every error listed if a file is bad), then builds the pixel-perfect camera,
-    /// the game host, the map, a sprite per character, and the UI Toolkit root (with the characters' names) at the 800x600 reference.
+    /// the game host, the map, a sprite per character, and the UI Toolkit root (with the characters' names and the main menu) at the 800x600 reference, and the cue player
+    /// the menu's sounds play through.
     /// </summary>
     public static class Bootstrap
     {
@@ -75,6 +76,7 @@ namespace Unity.ProjectVania
             var camera = cameraObject.AddComponent<Camera>();
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = MapView.ToColor(settings.Grid.Draw.ClearColour); // XNA CornflowerBlue, SceneManager.Draw's clear colour
+            cameraObject.AddComponent<AudioListener>(); // hears the cues (CuePlayer's sources are 2D)
             var pixelPerfect = cameraObject.AddComponent<PixelPerfectCamera>();
             pixelPerfect.PixelsPerUnit = settings.Grid.PixelsPerUnit;
             cameraObject.AddComponent<GameCamera>().Initialize(host.World, host.Input.Player, settings.Grid.PixelsPerUnit);
@@ -83,6 +85,8 @@ namespace Unity.ProjectVania
             BuildCharacters(root.transform, host, settings);
             var ui = BuildUi(root.transform);
             ui.gameObject.AddComponent<NameTags>().Initialize(host.World, settings.Characters.NameTag, camera, settings.Grid.PixelsPerUnit, ui.rootVisualElement);
+            // The GUI draws after the scene, so the menu covers the world and its names (RECONSTRUCTION 9).
+            ui.gameObject.AddComponent<MainMenuView>().Initialize(host.World, settings.Menu, ui.rootVisualElement);
             return host;
         }
 

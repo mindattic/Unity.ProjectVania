@@ -685,6 +685,19 @@ namespace Unity.ProjectVania.Core.Settings
         public SettingsColour TextColour { get; private set; }
         public string MoveCue { get; private set; }
         public string SelectCue { get; private set; }
+
+        /// <summary>The cue <c>Action_ToggleMainMenu</c> plays opening the menu (<c>menu_open</c>).</summary>
+        public string OpenCue { get; private set; }
+
+        /// <summary>The cue <c>Action_ToggleMainMenu</c> plays closing the menu (<c>menu_close</c>).</summary>
+        public string CloseCue { get; private set; }
+
+        /// <summary>The menu's sprite font (<c>Lucida.spritefont</c>: Lucida Console), used for items, title and description.</summary>
+        public string Font { get; private set; }
+
+        /// <summary>The sprite font's size in points (14).</summary>
+        public float FontPoints { get; private set; }
+
         public IReadOnlyList<MenuLevel> Levels { get; private set; }
 
         internal static MenuData Read(SettingsReader r)
@@ -705,11 +718,16 @@ namespace Unity.ProjectVania.Core.Settings
                 TextColour = r.Choice<SettingsColour>("textColour"),
                 MoveCue = r.Text("moveCue"),
                 SelectCue = r.Text("selectCue"),
+                OpenCue = r.Text("openCue"),
+                CloseCue = r.Text("closeCue"),
+                Font = r.Text("font"),
+                FontPoints = r.Number("fontPoints", 1f, 200f),
                 Levels = r.Each("levels", MenuLevel.Read),
             };
             if (data.Levels.Count > 0)
             {
                 r.Check(data.Levels[0].Parent == -1, "levels", "level 0 is the root and its parent must be -1");
+                r.Check(data.Levels[0].Items.Count > 0, "levels", "level 0, the root, must have an item to highlight");
             }
 
             for (var i = 0; i < data.Levels.Count; i++)
@@ -728,8 +746,11 @@ namespace Unity.ProjectVania.Core.Settings
                 r.Check(walk == 0, "levels", $"level {i} ('{level.Title}') never reaches the root by its parents");
                 foreach (var item in level.Items)
                 {
-                    r.Check(item.Action != MenuAction.Open || (item.Target >= 0 && item.Target < data.Levels.Count), "levels",
+                    var opens = item.Action == MenuAction.Open;
+                    r.Check(!opens || (item.Target >= 0 && item.Target < data.Levels.Count), "levels",
                         $"item '{item.Text}' of level {i} opens level {item.Target}, which does not exist");
+                    r.Check(!opens || item.Target < 0 || item.Target >= data.Levels.Count || data.Levels[item.Target].Items.Count > 0, "levels",
+                        $"item '{item.Text}' of level {i} opens level {item.Target}, which has no item to highlight");
                 }
             }
 

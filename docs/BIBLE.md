@@ -198,6 +198,31 @@ rotation (plus a half turn for a negative magnification) with its orthographic s
 same picture; the EditMode tests check the Unity camera puts world points exactly where the original's matrix did.
 The camera is interpolated by the world's `Alpha`, as the characters are, zoom and turn included.
 
+**Game states and the main menu (U.VAN-US-A10).** The states change exactly as RECONSTRUCTION 2's table: Esc or Start
+opens the menu from Play, the editor or the console, and closes it to Play whatever it was opened from (the console
+stays down under it, as before); only Play steps the characters, so the menu, console and editor freeze the world while
+the camera keeps easing. Core's `MainMenu` is the original's `MainMenu` plus `InputManager`'s menu methods: menu.json's
+levels, the selected level and item, `Up` / `Down` wrapping, `Back` to the parent's first item (silently; at the root it
+closes the menu), and `Select`, which opens an `Open` item's level, returns `Quit` or `ToggleFullscreen` for the world
+to carry out, and then highlights the first item of the level shown, whatever the item did. The selection is never
+reset on open or close, so the menu reopens where it was left, as the original's did. The world names every cue as a
+`CueRequested` event at the original's moments: `menu_open` and `menu_close` on every toggle (including Back at the
+root), `menu_move` on every Up or Down, `menu_select` on every select (Quit included), nothing on going up a level; Quit
+is a `QuitRequested` event, which `GameHost` turns into `Application.Quit` (leaving Play mode in the Editor). menu.json
+holds the cue names and the font. Runtime's `MainMenuView` draws it, only in the MainMenu state, as UI Toolkit elements in
+the pixel-perfect panel after the names: `menu1` (543 x 742, bilinear as XNA's SpriteBatch sampled a stretched picture)
+over the whole 800 x 600 at alpha 0.8, which greys the frozen world out; `arrow1` at (item x - 18, item y); the items
+in Lucida Console 14 (19 px at 96 dpi) at (50, 100 + 50 * index), yellow, the highlighted one red; the title at (10, 15)
+and the description at (10, H - 20) in white. Lucida Console is taken from the installed system fonts (it ships with
+Windows and is not ours to redistribute), with Unity's built-in font standing in where it is missing. Runtime's
+`CuePlayer` plays a cue from audio.json's table, its wave at `Resources/Audio/<wave>.wav` imported as the original's
+PCM, a new one-shot each time at the cue's XACT volume (hundredths of a dB) times the table's volume, nothing while
+muted; only the four menu waves are imported so far, and the rest of the table (and mute, pause and the songs) is
+U.VAN-US-A13's. Left for later stories: the GUI's hand cursor, which the original drew over the menu at the mouse
+(`Cursor` in Screen mode, RECONSTRUCTION 8), comes with the editor's cursors (A14); the console's slide and its cues
+are A11's. `unity.ps1 capture` now also writes `menu.png` and `menu-video.png` (and `play-ui.png`), the camera's
+picture with the UI Toolkit panel drawn over it.
+
 **Effects.** The one effect used, `filter`, is a 1 % radial vignette (its `refractSampler` was never
 bound, so it never refracted); it becomes a URP full-screen pass over the world camera with its
 parameters as data. This is a **deliberate deviation** from RECONSTRUCTION 6.1: the original darkened by
