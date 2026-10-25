@@ -40,7 +40,7 @@
     "releaseStandsUp": true
   },
   "wallJump": {
-    "_about": "Owner decision 2026-10-23 (BIBLE defect 6, built by U.VAN-T24): a wall jump pushes the character off the wall at once. The original only climbed along it (4.7). pushSpeed is a data slot in pixels per second away from the wall; U.VAN-T24 tunes it in play, 200 (the run cap) is a starting value.",
+    "_about": "Owner decision 2026-10-23 (BIBLE defect 6, built by U.VAN-T24): a wall jump pushes the character off the wall at once. The original only climbed along it (4.7). pushSpeed is a data slot in pixels per second away from the wall; U.VAN-T21's end-to-end play-through settled it at 200 (the run cap), which settles at the same 130 px/s a run settles to in the air through the same drag.",
     "pushOff": true,
     "pushSpeed": 200
   }

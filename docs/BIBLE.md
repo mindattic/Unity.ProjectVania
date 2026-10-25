@@ -171,7 +171,12 @@ still reads the action as Kneeling before this step's physics run) is unaffected
 `player.json`'s `wallJump.pushOff`/`pushSpeed` push an active wall jump away from a full-height wall every frame
 contact lasts (through the same air drag as any other horizontal speed, so it settles at the same 130 px/s a run
 settles to in the air), while the vertical jump curve and the passive wall slide are untouched; with `pushOff` off,
-the original's climb-then-pin behaviour is unchanged. Defect 7 is kept as the original.
+the original's climb-then-pin behaviour is unchanged. Defect 7 is kept as the original. **U.VAN-T21 settled both
+kept-pending behaviours end to end**: `EndToEndPlaythroughTests` (Core.Tests) drives the kneel-and-release and the
+wall-slide-and-wall-jump-push-off sequences through the fully composed game (roster, camera, menu, console, HUD,
+audio and editor all present, not only PlayerCharacterTests' minimal physics worlds), and `unity.ps1 capture` shows
+them (`kneel.png`, `slide.png`, `wallslide.png`, `walljump.png`); both are kept exactly as U.VAN-T23 and U.VAN-T24
+tuned them, with no further change needed.
 
 **Characters on screen (U.VAN-US-A7).** Core's `CharacterAnimator` is the original's `AnimationPlayer` and the
 `PlayAnimation` calls of `Player.cs`'s `Action_*` methods: the action picks the strip (Standing idle, Running run,

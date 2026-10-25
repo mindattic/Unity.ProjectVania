@@ -4,6 +4,7 @@ using System.Reflection;
 using Unity.ProjectVania.Core.Commands;
 using Unity.ProjectVania.Core.Display;
 using Unity.ProjectVania.Core.Settings;
+using Unity.ProjectVania.Core.World;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -42,6 +43,65 @@ namespace Unity.ProjectVania.EditorTools
                 Save(camera, Path.Combine(output, "warmup.png")); // the pipeline's first render in a fresh editor is incomplete
                 File.Delete(Path.Combine(output, "warmup.png"));
                 Save(camera, Path.Combine(output, "play.png"));
+
+                // U.VAN-US-A18 (U.VAN-T21): the mechanics EndToEndPlaythroughTests plays through Core alone, seen here with
+                // Unity's graphics. Player one runs left off the spawn (grid.json's structures sit to the right, RECONSTRUCTION
+                // 4.2), kneels and releases (BIBLE defect 3, U.VAN-T23, settled), slides (4.5), then is placed beside the
+                // bridge's left wall the way the Core test and PlayerCharacterTests' OnLeftWall do, to wall slide (4.6) and
+                // wall jump with the push-off (defect 6, U.VAN-T24, settled).
+                var driven = host.World.Characters[0];
+                for (var i = 0; i < 15; i++)
+                {
+                    host.World.Submit(new MoveCharacter(PlayerId.One, -1));
+                    host.World.Advance(1.0 / 60);
+                }
+
+                host.World.Submit(new StandCharacter(PlayerId.One));
+                host.World.Advance(1.0 / 60);
+                host.World.Submit(new KneelCharacter(PlayerId.One));
+                host.World.Advance(1.0 / 60);
+                Present(host);
+                SaveWithUi(camera, host, Path.Combine(output, "kneel.png"));
+                host.World.Submit(new StandCharacter(PlayerId.One)); // releasing S: U.VAN-T23 stands him up at once
+                host.World.Advance(1.0 / 60);
+
+                for (var i = 0; i < 10; i++)
+                {
+                    host.World.Submit(new MoveCharacter(PlayerId.One, -1));
+                    host.World.Advance(1.0 / 60);
+                }
+
+                for (var i = 0; i < 8; i++)
+                {
+                    host.World.Submit(new KneelCharacter(PlayerId.One));
+                    host.World.Advance(1.0 / 60);
+                }
+
+                Present(host);
+                SaveWithUi(camera, host, Path.Combine(output, "slide.png"));
+                host.World.Submit(new StandCharacter(PlayerId.One));
+                host.World.Advance(1.0 / 60);
+
+                driven.Reset(new PixelVector(350f, 300f)); // beside the left wall (column 20, right face x = 336)
+                for (var i = 0; i < 10; i++)
+                {
+                    host.World.Submit(new MoveCharacter(PlayerId.One, -1));
+                    host.World.Advance(1.0 / 60);
+                }
+
+                Present(host);
+                SaveWithUi(camera, host, Path.Combine(output, "wallslide.png"));
+                host.World.Submit(new MoveCharacter(PlayerId.One, -1));
+                host.World.Submit(new JumpCharacter(PlayerId.One));
+                host.World.Advance(1.0 / 60);
+                for (var i = 0; i < 5; i++)
+                {
+                    host.World.Submit(new MoveCharacter(PlayerId.One, -1));
+                    host.World.Advance(1.0 / 60);
+                }
+
+                Present(host);
+                SaveWithUi(camera, host, Path.Combine(output, "walljump.png")); // pushed off the wall, not pinned to it (defect 6)
 
                 // The main menu (U.VAN-US-A10) over the frozen world: the root, then the Video level, then closed again.
                 SaveWithUi(camera, host, Path.Combine(output, "play-ui.png"));
@@ -120,6 +180,17 @@ namespace Unity.ProjectVania.EditorTools
                 Nudge(host, CameraNudge.RotateLeft, 20);
                 Nudge(host, CameraNudge.ZoomOut, 20);
                 Present(host);
+
+                // The camera's four modes (U.VAN-US-A9, RECONSTRUCTION 7): C cycles Free -> LockPlayer -> LoosePlayer ->
+                // LooseCursor -> Free; one shot per mode, named from the mode actually landed on.
+                for (var i = 0; i < 4; i++)
+                {
+                    host.World.Submit(new CycleCameraMode(PlayerId.One));
+                    Steps(host, 30);
+                    Present(host);
+                    var mode = host.World.Camera(PlayerId.One).Mode.ToString().ToLowerInvariant();
+                    Save(camera, Path.Combine(output, $"camera-{mode}.png"));
+                }
 
                 // The map editor (U.VAN-US-A14): the third tile of the second row picked with the arrows, the mouse
                 // scrolls the view up off the floor, left held paints a row of it while the mouse scrolls right, the cursor
