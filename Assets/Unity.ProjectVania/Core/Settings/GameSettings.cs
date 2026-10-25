@@ -28,11 +28,12 @@ namespace Unity.ProjectVania.Core.Settings
         public const string HudFile = "hud.json";
         public const string EditorFile = "editor.json";
         public const string EffectsFile = "effects.json";
+        public const string ContentFile = "content.json";
 
         /// <summary>Every data file the registry reads.</summary>
         public static readonly string[] Files =
         {
-            PlayerFile, CharactersFile, AnimationsFile, GridFile, MenuFile, CameraFile, ConsoleFile, AudioFile, SegmentsFile, NamesFile, InputFile, HudFile, EditorFile, EffectsFile,
+            PlayerFile, CharactersFile, AnimationsFile, GridFile, MenuFile, CameraFile, ConsoleFile, AudioFile, SegmentsFile, NamesFile, InputFile, HudFile, EditorFile, EffectsFile, ContentFile,
         };
 
         private GameSettings()
@@ -53,6 +54,7 @@ namespace Unity.ProjectVania.Core.Settings
         public HudData Hud { get; private set; }
         public EditorData Editor { get; private set; }
         public EffectData Effects { get; private set; }
+        public ContentData Content { get; private set; }
 
         /// <summary>The original-to-Runtime unit mapping (grid.json units).</summary>
         public OriginalUnits Units { get; private set; }
@@ -86,6 +88,7 @@ namespace Unity.ProjectVania.Core.Settings
                 Hud = Read(source, HudFile, errors, HudData.Read),
                 Editor = Read(source, EditorFile, errors, EditorData.Read),
                 Effects = Read(source, EffectsFile, errors, EffectData.Read),
+                Content = Read(source, ContentFile, errors, ContentData.Read),
             };
 
             if (errors.Count == 0)
@@ -222,6 +225,28 @@ namespace Unity.ProjectVania.Core.Settings
             if (Editor.Palette.TilesetSize.X < Editor.TileSize || Editor.Palette.TilesetSize.Y < Editor.TileSize)
             {
                 errors.Add($"{EditorFile}: palette.tilesetSize must hold at least one {Editor.TileSize} px tile");
+            }
+
+            // content.json's segment atlas is the image segments.json's definitions were cut from.
+            var atlasImage = Content.SegmentAtlas.Asset + ".png";
+            var sourceImages = new List<string>();
+            foreach (var source in Segments.Sources)
+            {
+                sourceImages.Add(source.Image);
+            }
+
+            if (!sourceImages.Contains(atlasImage))
+            {
+                errors.Add($"{ContentFile}: segmentAtlas.asset '{Content.SegmentAtlas.Asset}' is not {SegmentsFile}'s source image");
+            }
+
+            // content.json's drawn area layer is the one grid.json's draw.layers actually draws.
+            foreach (var layer in Grid.Draw.Layers)
+            {
+                if (layer.Asset != Content.AreaLayers.Drawn)
+                {
+                    errors.Add($"{GridFile}: draw.layers draws '{layer.Asset}', but {ContentFile}'s areaLayers.drawn is '{Content.AreaLayers.Drawn}'");
+                }
             }
         }
 

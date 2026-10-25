@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using NUnit.Framework;
+using Unity.ProjectVania.Core.Display;
 using Unity.ProjectVania.Core.Settings;
 
 namespace Unity.ProjectVania.Core.Tests
@@ -225,6 +226,33 @@ namespace Unity.ProjectVania.Core.Tests
         }
 
         [Test]
+        public void Content_KeepsEverythingTheOriginalNeverWired()
+        {
+            var content = Load().Content;
+            Assert.That(content.SegmentAtlas.Asset, Is.EqualTo("maps1"));
+            Assert.That(content.SegmentAtlas.Size.XInt, Is.EqualTo(1024));
+            Assert.That(content.Ledges.Slots, Is.EqualTo(16));
+            Assert.That(content.Ledges.NodesPerLedge, Is.EqualTo(16));
+            Assert.That(content.Sun.Periods.Select(p => p.Name), Is.EqualTo(new[] { "Day", "Dusk", "Night", "Dawn" }));
+            Assert.That(content.Sun.Periods.Single(p => p.Name == "Night").Colour, Is.EqualTo(new Rgba(128, 0, 255, 64)));
+            Assert.That(content.ActionCross.Slots.Count, Is.EqualTo(4));
+            Assert.That(content.ActionCross.Slots.Single(s => s.Position == ActionCrossPosition.Top).Icon, Is.EqualTo("icon_selectsquad"));
+            Assert.That(content.Portraits.Used, Is.EqualTo("portrait_1"));
+            Assert.That(content.Portraits.Unused.Count, Is.EqualTo(6));
+            Assert.That(content.Icons.ActionButtons.Count, Is.EqualTo(4));
+            Assert.That(content.Icons.Skills.Count, Is.EqualTo(29));
+            Assert.That(content.Icons.Skills, Does.Contain("poisondart").And.Contain("consecrate"));
+            Assert.That(content.AreaLayers.Drawn, Is.EqualTo("area_1"));
+            Assert.That(content.AreaLayers.Unused.Count, Is.EqualTo(4));
+            Assert.That(content.Particles.Assets.Count, Is.EqualTo(5));
+            Assert.That(content.Selectors.Assets.Count, Is.EqualTo(5));
+            Assert.That(content.Banners.Assets.Count, Is.EqualTo(15));
+            Assert.That(content.SpriteSheets.Assets.Count, Is.EqualTo(16));
+            Assert.That(content.UnwiredCharacterArt.Sheet, Is.EqualTo("richter"));
+            Assert.That(content.UnwiredCharacterArt.Size.XInt, Is.EqualTo(640));
+        }
+
+        [Test]
         public void Names_AreTheOriginalsTables()
         {
             var names = Load().Names;
@@ -325,6 +353,20 @@ namespace Unity.ProjectVania.Core.Tests
         {
             var e = LoadFails(Patched(GameSettings.SegmentsFile, t => t.Replace("[437, 300, 479, 409]", "[437, 300, 479, 2000]")));
             Assert.That(e.Errors.Single(), Does.Contain("'torch'").And.Contain("outside"));
+        }
+
+        [Test]
+        public void ContentSegmentAtlas_MustBeSegmentsOwnSourceImage()
+        {
+            var e = LoadFails(Patched(GameSettings.ContentFile, t => t.Replace("\"asset\": \"maps1\",", "\"asset\": \"wrong\",")));
+            Assert.That(e.Errors.Single(), Does.Contain("segmentAtlas.asset").And.Contain("wrong"));
+        }
+
+        [Test]
+        public void ContentDrawnAreaLayer_MustMatchWhatGridActuallyDraws()
+        {
+            var e = LoadFails(Patched(GameSettings.ContentFile, t => t.Replace("\"drawn\": \"area_1\",", "\"drawn\": \"nope\",")));
+            Assert.That(e.Errors.Single(), Does.Contain("draws 'area_1'").And.Contain("nope"));
         }
 
         [Test]

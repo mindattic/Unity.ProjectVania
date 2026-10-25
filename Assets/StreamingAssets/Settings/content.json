@@ -1,0 +1,83 @@
+{
+  "_source": "RECONSTRUCTION 5.1, 9.1, 13 and 15: everything the original built but never wired into play (dead data kept in memory, a cycle and a cross nothing ever started, loaded art nothing ever drew). Nothing in Core or Runtime reads this file for behaviour; it exists only so the rebuild keeps every one of these, as data, the way U.VAN-US-A16 asks (owner 2026-10-23).",
+  "segmentAtlas": {
+    "_about": "MapEditor\\maps1.png (RECONSTRUCTION 5.1): the source image segments.json's eleven definitions cut their rectangles from. Parsed by the original's editor and never drawn; kept here as the asset the definitions describe.",
+    "asset": "maps1",
+    "size": [1024, 1024]
+  },
+  "ledges": {
+    "_about": "World\\Map\\Map.cs's Ledge[16] (RECONSTRUCTION 5): sixteen slots of up to sixteen Vector2 nodes each, allocated by the constructor and filled by nothing; no code ever reads, draws, collides with or saves a ledge. Kept as the shape the original allocated, not as content (the original never put any in).",
+    "slots": 16,
+    "nodesPerLedge": 16
+  },
+  "sun": {
+    "_about": "World\\Sun.cs (RECONSTRUCTION 9.1, defect 12): a day-night tint cycle whose Timer only advances inside UpdateTimer, which nothing calls, so the cycle is frozen and both tints stay (0,0,0,0), invisible. Kept inert as data (BIBLE defect 12); nothing in Core or Runtime ticks it.",
+    "tickMilliseconds": 10,
+    "alphaStep": 1,
+    "periods": [
+      { "name": "Day", "colour": [255, 255, 255, 0] },
+      { "name": "Dusk", "colour": [255, 0, 0, 64] },
+      { "name": "Night", "colour": [128, 0, 255, 64] },
+      { "name": "Dawn", "colour": [128, 128, 128, 0] }
+    ]
+  },
+  "actionCross": {
+    "_about": "Gui\\ActionCross.cs (RECONSTRUCTION 9.1, defect 12): a 145x145 glass and frame with four 48x48 icon slots; its construction, update and draw are commented out in GuiManager, and SetActionIcons is an empty shell, so it never exists at runtime. Kept inert as data (BIBLE defect 12).",
+    "glass": "action_cross_glass",
+    "frame": "action_cross_frame",
+    "size": [145, 145],
+    "slotSize": [48, 48],
+    "slots": [
+      { "position": "Top", "icon": "icon_selectsquad" },
+      { "position": "Left", "icon": "blank" },
+      { "position": "Right", "icon": "blank" },
+      { "position": "Bottom", "icon": "blank" }
+    ]
+  },
+  "portraits": {
+    "_about": "Gui\\Portraits (RECONSTRUCTION 9.1, 13): seven portraits loaded by the original; Portrait.cs's photo never changes with the selected player, so only portrait_1 (hud.json) is ever drawn. The other six are kept as unused content.",
+    "used": "portrait_1",
+    "unused": ["portrait_archer", "portrait_paladin", "portrait_priest", "portrait_rogue", "portrait_soldier", "portrait_wizard"]
+  },
+  "icons": {
+    "_about": "Gui\\Icons (RECONSTRUCTION 13, defect 14): four action buttons and twenty-nine skill icons, all loaded by the original and none drawn (the ActionCross they belong to never exists). The original's icon_poisondart loaded icon_parry.png's file (a typo) and icon_consecrate.png was never loaded at all; fixed in this data, each name is its own file.",
+    "actionButtons": ["action_A", "action_B", "action_X", "action_Y"],
+    "skills": [
+      "assassinate", "attack", "aura", "battlecry", "bow", "consecrate", "crossbow", "falcon", "fireball",
+      "flashheal", "icewall", "lifewell", "lightning", "mace", "might", "parry", "phalanx", "poisondart",
+      "pray", "redemption", "regen", "repair", "selectsquad", "shield", "shoot", "stab", "trap", "vanish", "wand"
+    ]
+  },
+  "areaLayers": {
+    "_about": "Areas (RECONSTRUCTION 5, 13): area_1 is the backdrop grid.json's draw.layers draws; the four parallax images beside it (evidently back and front layers) are in the content project and were never loaded by the original. Kept here as inventory, still undrawn.",
+    "drawn": "area_1",
+    "unused": ["area_1_b1", "area_1_b2", "area_1_f1", "area_1_f2"]
+  },
+  "particles": {
+    "_about": "Particles (RECONSTRUCTION 13): five particle pictures with no particle system in either copy of the project; the Particles folder in the content project is empty of code.",
+    "assets": ["particle_bug", "particle_leaf", "particle_rain", "particle_sand", "particle_snow"]
+  },
+  "selectors": {
+    "_about": "Selectors (RECONSTRUCTION 13): five selector-ring sizes, loaded by nothing (the map editor's own selector is TilePalette's square_selector, editor.json).",
+    "assets": ["selector", "selector_S", "selector_M", "selector_L", "selector_XL"]
+  },
+  "banners": {
+    "_about": "Banners (RECONSTRUCTION 13): fifteen banner pictures, loaded by nothing.",
+    "assets": [
+      "banner_1", "banner_2", "banner_3", "banner_4", "banner_5", "banner_6", "banner_7", "banner_8",
+      "banner_9", "banner_10", "banner_11", "banner_12", "banner_13", "banner_14", "banner_15"
+    ]
+  },
+  "spriteSheets": {
+    "_about": "SpriteSheets (RECONSTRUCTION 13): sixteen character sheets; RandomSkin() names six soldier variants but is never called, and nothing else loads any of these.",
+    "assets": [
+      "hunter", "knight", "leo", "magitek_brown", "magitek_yellow", "paladin", "priest", "rogue", "soldier",
+      "soldier_blue", "soldier_brown", "soldier_gray", "soldier_halo", "soldier_red", "soldier_yellow", "wizard"
+    ]
+  },
+  "unwiredCharacterArt": {
+    "_about": "Characters\\Playable\\Richter (RECONSTRUCTION 13): idle and run strips, never loaded by the original (unlike Shanoa and Leo, whose sheets were loaded though unused; U.VAN-T25 later made Shanoa and Leo playable here). Richter has no character entry in characters.json and stays unwired.",
+    "sheet": "richter",
+    "size": [640, 64]
+  }
+}
