@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using Unity.ProjectVania.Core.Display;
 using Unity.ProjectVania.Core.Settings;
@@ -267,8 +268,11 @@ namespace Unity.ProjectVania.Core.Tests
         [Test]
         public void ContentFontCount_MustBeAllThree()
         {
-            var e = LoadFails(Patched(GameSettings.ContentFile, t => t.Replace(
-                ",\n      { \"name\": \"Webdings_14\", \"family\": \"Webdings\", \"points\": 14, \"region\": [32, 126], \"used\": false }", "")));
+            var original = Shipped.Read(GameSettings.ContentFile);
+            var webdingsEntry = new Regex(@",\s*\{\s*""name""\s*:\s*""Webdings_14""[^}]*\}", RegexOptions.Singleline);
+            var patched = webdingsEntry.Replace(original, "");
+            Assert.That(patched, Is.Not.EqualTo(original), "the Webdings_14 entry must actually be removed by the regex above");
+            var e = LoadFails(new MemorySettingsSource(Shipped).Set(GameSettings.ContentFile, patched));
             Assert.That(e.Errors.Single(), Does.Contain("fonts").And.Contain("all three"));
         }
 
