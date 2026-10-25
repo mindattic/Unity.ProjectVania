@@ -90,9 +90,10 @@ namespace Unity.ProjectVania.Core.World
         /// rectangle of <paramref name="tileset"/>, unscaled, at the cell's position (index x cell size), tinted by the
         /// cell's colour, composited in <c>foreach (GridCell cell in cells)</c> order (column-major: x outer, y inner).
         /// Pixels falling outside the tileset or the target are skipped. Drawing the result over the layers is the same as
-        /// drawing each cell over them.
+        /// drawing each cell over them. With <paramref name="effect"/> each cell is drawn through it as the original drew
+        /// every cell through <c>filter</c>: per sprite, in the tileset's texture coordinates (RECONSTRUCTION 6.1).
         /// </summary>
-        public static void PaintCells(Map map, GameState state, PixelImage tileset, PixelImage target)
+        public static void PaintCells(Map map, GameState state, PixelImage tileset, PixelImage target, SpriteEffect effect = null)
         {
             if (map == null) throw new ArgumentNullException(nameof(map));
             if (tileset == null) throw new ArgumentNullException(nameof(tileset));
@@ -106,7 +107,7 @@ namespace Unity.ProjectVania.Core.World
                     var cell = map[x, y];
                     if (IsDrawn(cell, state))
                     {
-                        PaintCell(cell, x * map.CellSize, y * map.CellSize, tileset, target);
+                        PaintCell(cell, x * map.CellSize, y * map.CellSize, tileset, target, effect);
                     }
                 }
             }
@@ -118,7 +119,7 @@ namespace Unity.ProjectVania.Core.World
         /// editor give is exactly one), so the result is the whole repaint's; returns false, painting nothing, for a cell
         /// whose tile is larger, which needs the whole repaint.
         /// </summary>
-        public static bool RepaintCell(Map map, int x, int y, GameState state, PixelImage tileset, PixelImage target)
+        public static bool RepaintCell(Map map, int x, int y, GameState state, PixelImage tileset, PixelImage target, SpriteEffect effect = null)
         {
             if (map == null) throw new ArgumentNullException(nameof(map));
             if (tileset == null) throw new ArgumentNullException(nameof(tileset));
@@ -145,7 +146,7 @@ namespace Unity.ProjectVania.Core.World
 
             if (IsDrawn(cell, state))
             {
-                PaintCell(cell, left, top, tileset, target);
+                PaintCell(cell, left, top, tileset, target, effect);
             }
 
             return true;
@@ -154,10 +155,12 @@ namespace Unity.ProjectVania.Core.World
         /// <summary>The pixel size <see cref="PaintCells"/> needs to hold every cell of <paramref name="map"/>.</summary>
         public static PixelImage CellCanvas(Map map) => new PixelImage(map.Columns * map.CellSize, map.Rows * map.CellSize);
 
-        static void PaintCell(GridCell cell, int left, int top, PixelImage tileset, PixelImage target)
+        static void PaintCell(GridCell cell, int left, int top, PixelImage tileset, PixelImage target, SpriteEffect effect)
         {
             var tint = cell.Tint;
             var tile = cell.Tile;
+            // A cell is drawn unscaled from its source rectangle, so each of its pixels is one texel's fragment.
+            var shaded = effect?.Shaded(tileset, tint);
             for (int v = 0; v < tile.Height; v++)
             {
                 for (int u = 0; u < tile.Width; u++)
@@ -171,7 +174,8 @@ namespace Unity.ProjectVania.Core.World
                         continue;
                     }
 
-                    target[tx, ty] = Rgba.Over(Rgba.Modulate(tileset[sx, sy], tint), target[tx, ty]);
+                    var drawn = shaded != null ? shaded[sx, sy] : Rgba.Modulate(tileset[sx, sy], tint);
+                    target[tx, ty] = Rgba.Over(drawn, target[tx, ty]);
                 }
             }
         }

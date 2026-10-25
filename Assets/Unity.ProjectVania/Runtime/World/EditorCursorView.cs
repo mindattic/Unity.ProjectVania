@@ -11,7 +11,8 @@ namespace Unity.ProjectVania
     /// buttons held, drawn in the world after the map's cells and before the characters, with its top-left on the
     /// editor's cursor, only while the game is in the editor and Space is not held. It is placed on the interpolated
     /// camera's centre plus half the hand, as Core puts the cursor on the stepped camera's, so it stays still on screen
-    /// while the view scrolls. It only reads the world.
+    /// while the view scrolls. Drawn through the world's effect, as <c>DrawToWorld</c> ran inside <c>DrawMap</c>'s pass.
+    /// It only reads the world.
     /// </summary>
     [DefaultExecutionOrder(45)]
     public sealed class EditorCursorView : MonoBehaviour
@@ -25,13 +26,17 @@ namespace Unity.ProjectVania
 
         public SpriteRenderer Renderer { get; private set; }
 
-        public void Initialize(GameWorld world, PlayerId player, EditorData data, float pixelsPerUnit)
+        public void Initialize(GameWorld world, PlayerId player, EditorData data, float pixelsPerUnit, Material effect = null)
         {
             _world = world;
             _player = player;
             _pixelsPerUnit = pixelsPerUnit;
             Renderer = gameObject.AddComponent<SpriteRenderer>();
             Renderer.sortingOrder = SortingOrder;
+            if (effect != null)
+            {
+                Renderer.sharedMaterial = effect;
+            }
             var path = MainMenuView.PathOf(data.Cursor.Asset);
             var texture = Resources.Load<Texture2D>(path);
             if (texture == null)

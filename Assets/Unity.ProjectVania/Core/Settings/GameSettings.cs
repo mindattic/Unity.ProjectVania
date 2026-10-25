@@ -27,11 +27,12 @@ namespace Unity.ProjectVania.Core.Settings
         public const string InputFile = "input.json";
         public const string HudFile = "hud.json";
         public const string EditorFile = "editor.json";
+        public const string EffectsFile = "effects.json";
 
         /// <summary>Every data file the registry reads.</summary>
         public static readonly string[] Files =
         {
-            PlayerFile, CharactersFile, AnimationsFile, GridFile, MenuFile, CameraFile, ConsoleFile, AudioFile, SegmentsFile, NamesFile, InputFile, HudFile, EditorFile,
+            PlayerFile, CharactersFile, AnimationsFile, GridFile, MenuFile, CameraFile, ConsoleFile, AudioFile, SegmentsFile, NamesFile, InputFile, HudFile, EditorFile, EffectsFile,
         };
 
         private GameSettings()
@@ -51,6 +52,7 @@ namespace Unity.ProjectVania.Core.Settings
         public InputData Input { get; private set; }
         public HudData Hud { get; private set; }
         public EditorData Editor { get; private set; }
+        public EffectData Effects { get; private set; }
 
         /// <summary>The original-to-Runtime unit mapping (grid.json units).</summary>
         public OriginalUnits Units { get; private set; }
@@ -83,6 +85,7 @@ namespace Unity.ProjectVania.Core.Settings
                 Input = Read(source, InputFile, errors, InputData.Read),
                 Hud = Read(source, HudFile, errors, HudData.Read),
                 Editor = Read(source, EditorFile, errors, EditorData.Read),
+                Effects = Read(source, EffectsFile, errors, EffectData.Read),
             };
 
             if (errors.Count == 0)

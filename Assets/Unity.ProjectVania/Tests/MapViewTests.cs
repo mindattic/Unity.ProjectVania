@@ -128,7 +128,9 @@ namespace Unity.ProjectVania.Tests
                     var pixel = canvas[x * 16 + 5, y * 16 + 11];
                     if (cell.State == CellState.Hard)
                     {
-                        Assert.That(pixel, Is.EqualTo(source[cell.Tile.X + 5, cell.Tile.Y + 11]), $"[{x}, {y}]");
+                        // Each cell is its own sprite through the world's filter, in the tileset's coordinates (A15).
+                        var shaded = _view.Effect.ShadeTexel(source, cell.Tile.X + 5, cell.Tile.Y + 11, cell.Tint);
+                        Assert.That(pixel, Is.EqualTo(shaded), $"[{x}, {y}]");
                     }
                     else
                     {
@@ -139,7 +141,7 @@ namespace Unity.ProjectVania.Tests
 
             // And the texture on screen holds what Core painted (Unity's rows run bottom-up): wall column 20, row 0.
             var shown = _view.Cells.sprite.texture.GetPixel(20 * 16 + 5, canvas.Height - 1 - 11);
-            var bridge = source[16 + 5, 11];
+            var bridge = _view.Effect.ShadeTexel(source, 16 + 5, 11, Rgba.White);
             Assert.That((Color32)shown, Is.EqualTo(new Color32(bridge.R, bridge.G, bridge.B, bridge.A)));
         }
 
@@ -163,7 +165,7 @@ namespace Unity.ProjectVania.Tests
                 for (var x = 0; x < map.Columns; x++)
                 {
                     var cell = map[x, y];
-                    var expected = Rgba.Modulate(tileset[cell.Tile.X + 3, cell.Tile.Y + 4], cell.Tint);
+                    var expected = _view.Effect.ShadeTexel(tileset, cell.Tile.X + 3, cell.Tile.Y + 4, cell.Tint);
                     Assert.That(_view.CellCanvas[x * 16 + 3, y * 16 + 4], Is.EqualTo(expected),
                         $"[{x}, {y}] ({cell.State}) is drawn in the editor; an empty one is the first tile at alpha 64");
                 }

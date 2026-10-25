@@ -1,0 +1,24 @@
+{
+  "_source": "Content\\Effects\\*.fx and SceneManager.Draw (RECONSTRUCTION 6.1). Every world sprite (the outline, the layers, the cells, the editor's world hand, the characters and their names) is drawn through 'world', per sprite, in that sprite's own texture coordinates, as the original's pixel shader replaced SpriteBatch's. Only filter is ever used; negative, bloom, pause and water are loaded and nothing selects them. Each shader's parameters are the defaults its .fx declared (the original's Parameters[...] assignments were commented out). filter's refractSampler was never bound, so its displacement is zero. BIBLE defect 19 is fixed in code: the sprite's tint is applied before the effect, where the original's shaders dropped it.",
+  "world": "Filter",
+  "filter": {
+    "_about": "filter.fx: col.rgb -= distance(tex, 0.5) * burn; a = avg * (1 - saturation); col = (col * saturation + a) * (r, g, b); col.rgb += brite.",
+    "burn": 0.01,
+    "saturation": 1.0,
+    "r": 1.0,
+    "g": 1.0,
+    "b": 1.0,
+    "brite": 0.0
+  },
+  "bloom": {
+    "_about": "bloom.fx: the texel and 12 Poisson taps at v times their offsets, averaged over 13, written at alpha a.",
+    "v": 0.01,
+    "a": 0.2
+  },
+  "water": {
+    "_about": "water.fx: the texture reflected about horizon and rippled by the delta and theta phases, which nothing ever set.",
+    "horizon": 0.5,
+    "delta": 0,
+    "theta": 0
+  }
+}

@@ -14,7 +14,8 @@ namespace Unity.ProjectVania
     /// lifted by the original's Top alignment, in an Arial 10 equivalent. UI Toolkit labels in the pixel-perfect
     /// panel, placed each frame where the game camera shows the character, after every character is drawn. The original
     /// drew the names through the camera's matrix, so each label is scaled by the camera's magnification and turned with
-    /// it about its anchor, the top-centre of the lifted text.
+    /// it about its anchor, the top-centre of the lifted text. Each name's colour is its write's colour through the world's
+    /// effect (<see cref="WorldEffectMaterial.NameColour"/>), as <c>DrawText</c> ran inside the effect's pass.
     /// </summary>
     [DefaultExecutionOrder(100)]
     public sealed class NameTags : MonoBehaviour
@@ -32,7 +33,7 @@ namespace Unity.ProjectVania
 
         public VisualElement Layer { get; private set; }
 
-        public void Initialize(GameWorld world, NameTagData tag, Camera camera, float pixelsPerUnit, VisualElement root)
+        public void Initialize(GameWorld world, NameTagData tag, Camera camera, float pixelsPerUnit, VisualElement root, SpriteEffect effect = null)
         {
             _world = world;
             _tag = tag;
@@ -62,7 +63,7 @@ namespace Unity.ProjectVania
                         label.style.unityFontDefinition = FontDefinition.FromFont(font);
                     }
 
-                    label.style.color = Colour(write.Colour);
+                    label.style.color = Colour(WorldEffectMaterial.NameColour(effect, write.Colour.ToRgba()));
                     label.style.marginLeft = label.style.marginRight = label.style.marginTop = label.style.marginBottom = 0;
                     label.style.paddingLeft = label.style.paddingRight = label.style.paddingTop = label.style.paddingBottom = 0;
                     label.style.unityTextAlign = TextAnchor.UpperCenter;

@@ -8,7 +8,8 @@ namespace Unity.ProjectVania
     /// <summary>
     /// Draws one Core character (<c>Player.Draw</c>, RECONSTRUCTION 4.8): picks the strip its action plays, advances the
     /// animation clock by the frame's time as the original's draw did, and shows that frame at the character's feet,
-    /// mirrored by <see cref="PlayerCharacter.Flipped"/>. It only reads the character.
+    /// mirrored by <see cref="PlayerCharacter.Flipped"/>, through the world's effect in the strip's own texture
+    /// coordinates (RECONSTRUCTION 6.1). It only reads the character.
     /// </summary>
     [RequireComponent(typeof(SpriteRenderer))]
     public sealed class CharacterView : MonoBehaviour
@@ -23,7 +24,7 @@ namespace Unity.ProjectVania
         public PlayerCharacter Character => _world.Characters[Index];
         public SpriteRenderer Renderer => _renderer;
 
-        public void Initialize(GameWorld world, int index, CharacterAnimator animator, CharacterArt art, float pixelsPerUnit)
+        public void Initialize(GameWorld world, int index, CharacterAnimator animator, CharacterArt art, float pixelsPerUnit, Material effect = null)
         {
             _world = world;
             Index = index;
@@ -31,6 +32,10 @@ namespace Unity.ProjectVania
             _art = art;
             _pixelsPerUnit = pixelsPerUnit;
             _renderer = GetComponent<SpriteRenderer>();
+            if (effect != null)
+            {
+                _renderer.sharedMaterial = effect;
+            }
 
             // Drawn in list order, as the original's foreach did: a later character over an earlier one.
             _renderer.sortingOrder = index;

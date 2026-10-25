@@ -13,7 +13,9 @@ namespace Unity.ProjectVania
     /// (the painted mountain-farmhouse backdrop, area_1, 1920 x 1200 at (0, 0)), then the grid's cells, all under the
     /// characters. The cells are painted by Core (<see cref="MapDrawing.PaintCells"/>) from the tileset's pixels into one
     /// point-filtered texture, repainted only when the map changes or the game enters or leaves the editor (where every
-    /// cell shows); the editor's few changes a step repaint and upload only their cells. It only reads the world. Art is <c>Resources/World/&lt;asset&gt;.png</c>, named as the original's
+    /// cell shows); the editor's few changes a step repaint and upload only their cells. Every sprite is drawn through the
+    /// world's effect (RECONSTRUCTION 6.1): the outline and layers with its material, the cells painted through Core's
+    /// <see cref="SpriteEffect"/> texel by texel in the tileset's coordinates, as each cell was its own sprite. It only reads the world. Art is <c>Resources/World/&lt;asset&gt;.png</c>, named as the original's
     /// TextureManager keys.
     /// </summary>
     [DefaultExecutionOrder(40)]
@@ -31,6 +33,7 @@ namespace Unity.ProjectVania
 
         GameWorld _world;
         float _pixelsPerUnit;
+        Material _effectMaterial;
         PixelImage _tileset;
         PixelImage _canvas;
         Texture2D _cellTexture;
@@ -43,6 +46,9 @@ namespace Unity.ProjectVania
         public IReadOnlyList<SpriteRenderer> Outline => _outline;
         public IReadOnlyList<SpriteRenderer> Layers => _layers;
         public SpriteRenderer Cells { get; private set; }
+
+        /// <summary>The effect the cells are painted through, or null to paint them plain.</summary>
+        public SpriteEffect Effect { get; private set; }
 
         /// <summary>The cell texture's pixels as Core painted them (row 0 at the top), or null without a tileset.</summary>
         public PixelImage CellCanvas => _canvas;
@@ -62,9 +68,11 @@ namespace Unity.ProjectVania
         /// <summary>The Resources path of one texture.</summary>
         public static string PathOf(string asset) => $"{ResourceFolder}/{asset}";
 
-        public void Initialize(GameWorld world, GridData grid)
+        public void Initialize(GameWorld world, GridData grid, SpriteEffect effect = null, Material effectMaterial = null)
         {
             _world = world;
+            Effect = effect;
+            _effectMaterial = effectMaterial;
             _pixelsPerUnit = grid.PixelsPerUnit;
             var draw = grid.Draw;
 
@@ -108,7 +116,7 @@ namespace Unity.ProjectVania
                 return;
             }
 
-            MapDrawing.PaintCells(_world.Map, state, _tileset, _canvas);
+            MapDrawing.PaintCells(_world.Map, state, _tileset, _canvas, Effect);
             Upload(_canvas, _cellTexture, _upload);
             _paintedRevision = _world.Map.Revision;
             _paintedState = state;
@@ -127,7 +135,7 @@ namespace Unity.ProjectVania
 
             foreach (var cell in _changed)
             {
-                if (!MapDrawing.RepaintCell(map, cell.X, cell.Y, state, _tileset, _canvas))
+                if (!MapDrawing.RepaintCell(map, cell.X, cell.Y, state, _tileset, _canvas, Effect))
                 {
                     return false;
                 }
@@ -173,7 +181,7 @@ namespace Unity.ProjectVania
             for (var i = 0; i < strips.Count; i++)
             {
                 var strip = strips[i];
-                var renderer = Renderer(group, $"Strip {i}", sprite, OutlineOrder);
+                var renderer = Renderer(group, $"Strip {i}", sprite, OutlineOrder, _effectMaterial);
                 renderer.color = ToColor(draw.OutlineColour);
                 renderer.transform.localPosition = TopLeft(strip.X, strip.Y);
                 renderer.transform.localScale = new Vector3(strip.Width, strip.Height, 1f); // the 1 px sprite stretched, as Shape did
@@ -194,7 +202,7 @@ namespace Unity.ProjectVania
             // The whole texture, unscaled, its top-left at the layer's position (SpriteBatch.Draw(texture, position, colour)).
             var sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0f, 1f), _pixelsPerUnit, 0, SpriteMeshType.FullRect);
             sprite.name = layer.Asset;
-            var renderer = Renderer(Child($"Layer {layer.Asset}"), null, sprite, order);
+            var renderer = Renderer(Child($"Layer {layer.Asset}"), null, sprite, order, _effectMaterial);
             renderer.color = ToColor(layer.Colour);
             renderer.transform.localPosition = TopLeft(layer.Position.X, layer.Position.Y);
             _layers.Add(renderer);
@@ -228,7 +236,8 @@ namespace Unity.ProjectVania
 
             var sprite = Sprite.Create(_cellTexture, new Rect(0, 0, _canvas.Width, _canvas.Height), new Vector2(0f, 1f), _pixelsPerUnit, 0, SpriteMeshType.FullRect);
             sprite.name = "Cells";
-            Cells = Renderer(Child("Cells"), null, sprite, CellsOrder);
+            // Already shaded by Core, so drawn with the default sprite material.
+            Cells = Renderer(Child("Cells"), null, sprite, CellsOrder, null);
             Cells.transform.localPosition = TopLeft(0f, 0f);
         }
 
@@ -275,7 +284,7 @@ namespace Unity.ProjectVania
             return child;
         }
 
-        static SpriteRenderer Renderer(Transform parent, string name, Sprite sprite, int order)
+        static SpriteRenderer Renderer(Transform parent, string name, Sprite sprite, int order, Material material)
         {
             SpriteRenderer renderer;
             if (name == null)
@@ -290,6 +299,11 @@ namespace Unity.ProjectVania
 
             renderer.sprite = sprite;
             renderer.sortingOrder = order;
+            if (material != null)
+            {
+                renderer.sharedMaterial = material;
+            }
+
             return renderer;
         }
 

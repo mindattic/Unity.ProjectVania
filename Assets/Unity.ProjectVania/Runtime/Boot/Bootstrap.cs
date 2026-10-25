@@ -81,10 +81,14 @@ namespace Unity.ProjectVania
             pixelPerfect.PixelsPerUnit = settings.Grid.PixelsPerUnit;
             cameraObject.AddComponent<GameCamera>().Initialize(host.World, host.Input.Player, settings.Grid.PixelsPerUnit);
 
-            BuildMap(root.transform, host, settings);
-            BuildCharacters(root.transform, host, settings);
+            // Every world sprite is drawn through effects.json's preset (SceneManager's "filter"), each in its own texture
+            // coordinates (RECONSTRUCTION 6.1); the GUI after it is not.
+            var effect = SpriteEffect.World(settings.Effects);
+            var effectMaterial = WorldEffectMaterial.World(settings.Effects);
+            BuildMap(root.transform, host, settings, effect, effectMaterial);
+            BuildCharacters(root.transform, host, settings, effectMaterial);
             var ui = BuildUi(root.transform);
-            ui.gameObject.AddComponent<NameTags>().Initialize(host.World, settings.Characters.NameTag, camera, settings.Grid.PixelsPerUnit, ui.rootVisualElement);
+            ui.gameObject.AddComponent<NameTags>().Initialize(host.World, settings.Characters.NameTag, camera, settings.Grid.PixelsPerUnit, ui.rootVisualElement, effect);
             // The GUI draws after the scene: first the HUD's pictures and the fade lens (RECONSTRUCTION 9.1), so the fade
             // darkens the world, its names and the HUD ...
             ui.gameObject.AddComponent<HudView>().Initialize(host.World, ui.rootVisualElement);
@@ -100,20 +104,20 @@ namespace Unity.ProjectVania
         }
 
         /// <summary>The map under the characters: outline, layers, cells, then the editor's cursor (RECONSTRUCTION 5, 6).</summary>
-        static void BuildMap(Transform parent, GameHost host, GameSettings settings)
+        static void BuildMap(Transform parent, GameHost host, GameSettings settings, SpriteEffect effect, Material effectMaterial)
         {
             var map = new GameObject("Map");
             map.transform.SetParent(parent, false);
-            map.AddComponent<MapView>().Initialize(host.World, settings.Grid);
+            map.AddComponent<MapView>().Initialize(host.World, settings.Grid, effect, effectMaterial);
 
             // MapEditor.DrawToWorld: the World cursor, after the cells and before the characters.
             var cursor = new GameObject("EditorCursor");
             cursor.transform.SetParent(map.transform, false);
-            cursor.AddComponent<EditorCursorView>().Initialize(host.World, host.Input.Player, settings.Editor, settings.Grid.PixelsPerUnit);
+            cursor.AddComponent<EditorCursorView>().Initialize(host.World, host.Input.Player, settings.Editor, settings.Grid.PixelsPerUnit, effectMaterial);
         }
 
         /// <summary>One sprite per Core character, drawn from its sheet's strips (RECONSTRUCTION 4.8).</summary>
-        static void BuildCharacters(Transform parent, GameHost host, GameSettings settings)
+        static void BuildCharacters(Transform parent, GameHost host, GameSettings settings, Material effectMaterial)
         {
             var group = new GameObject("Characters");
             group.transform.SetParent(parent, false);
@@ -125,7 +129,7 @@ namespace Unity.ProjectVania
                 var view = new GameObject($"Character {i} ({characters[i].Name})", typeof(SpriteRenderer)).AddComponent<CharacterView>();
                 view.transform.SetParent(group.transform, false);
                 var animator = new CharacterAnimator(settings.Animations.Find(definition.Sheet));
-                view.Initialize(host.World, i, animator, art, settings.Grid.PixelsPerUnit);
+                view.Initialize(host.World, i, animator, art, settings.Grid.PixelsPerUnit, effectMaterial);
             }
         }
 

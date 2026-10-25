@@ -206,7 +206,7 @@ namespace Unity.ProjectVania.Tests
             }
 
             var whole = MapDrawing.CellCanvas(_host.World.Map);
-            MapDrawing.PaintCells(_host.World.Map, _host.World.State, MapView.Download(Resources.Load<Texture2D>(MapView.PathOf("tileset_default"))), whole);
+            MapDrawing.PaintCells(_host.World.Map, _host.World.State, MapView.Download(Resources.Load<Texture2D>(MapView.PathOf("tileset_default"))), whole, _map.Effect);
             Assert.That(canvas.Pixels, Is.EqualTo(whole.Pixels), "the same picture as a whole repaint");
         }
 

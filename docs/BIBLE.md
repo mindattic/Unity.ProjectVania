@@ -97,6 +97,7 @@ standard.
 | 16 | `[` / `]` leave the character switched away from with its `movement` held, so one switched away from mid-run runs on, undriven, for ever | **Fix** (U.VAN-T10): the character left behind lets go of its direction (`Cancel_Move`) as the switch happens, so the twin stands still as it was meant to |
 | 17 | The message stack keeps the index of the message that last moved across ticks; once a pad's notice has made the front message opaque again it outlives the rest, and when the last of them is removed the stale index points past the list and the game throws (U.VAN-T15, a test replays the original's crash) | **Fix**: the index is kept inside the list; nothing else about the stack changes |
 | 18 | `InvokeMessage` does nothing with no message queued (its "show the first message" branch is commented out), so the gamepad notice is lost once the start-up messages are gone | **Fix**: with nothing queued the notice is queued as a new message; hud.json's `messages.noticeWhenEmpty` is the slot |
+| 19 | The five effects read no vertex colour, so every tint drawn through `filter` was dropped (white names, an editor hand that never changes colour, opaque empty cells in the editor) | **Fix** (built by U.VAN-T18): each sample is tinted before the effect runs, which is how every view already drew; effects.json records it |
 
 **Audio (U.VAN-US-A13).** Music never starts by itself, as in the original; only `play music` / `play battle` start it
 (§11). The XACT banks become a cue table in data (audio.json: name, wave, length, volume in hundredths of a dB, loop,
@@ -310,14 +311,30 @@ window kept reading wherever the mouse was). The OS cursor is hidden while playi
 `unity.ps1 capture` writes `editor-paint.png` (a painted row, the yellow-highlighted cell under the hand, the palette) and
 `editor-palette.png` (Space held: the Screen hand over the palette).
 
-**Effects.** The one effect used, `filter`, is a 1 % radial vignette (its `refractSampler` was never
-bound, so it never refracted); it becomes a URP full-screen pass over the world camera with its
-parameters as data. This is a **deliberate deviation** from RECONSTRUCTION 6.1: the original darkened by
-distance within each sprite's own UV (every tile, player and name vignetted individually); a screen-space
-pass vignettes the screen corners instead. At `burn = 0.01` the difference is near invisible, and the
-per-sprite look can be restored with a sprite material if the owner wants it. `bloom`, `negative`, `pause` and `water` are ported as selectable post-process
-presets that nothing enables, mirroring the original; the five effects that exist only in the earlier
-copy (`basic`, `pointsprite`, `rain`, `snow`, `riemer`) are out of scope (§17).
+**Effects (U.VAN-US-A15).** The world is drawn through the original's effects exactly as `SceneManager` drew it: per
+sprite, never as a full-screen pass (the earlier full-screen deviation is withdrawn by the owner's rebuild standard).
+effects.json names the preset the world uses (`world: Filter`, the original's `effect = "filter"`) and holds each
+shader's declared parameters at their .fx defaults (filter `burn 0.01`, `saturation 1`, `r g b 1`, `brite 0`; bloom
+`v 0.01`, `a 0.2`; water `horizon 0.5`, `delta`/`theta 0`); figures the shaders wrote as literals (pause's 0.005, water's
+0.35 and ripple, the 12 Poisson taps) stay in code as the shaders kept them. Core's `SpriteEffect` is the five pixel
+shaders' arithmetic on floats, in XNA's texture coordinates (v down), nearest texel clamped at the edge, output clamped to
+8 bits; `Resources/Shaders/WorldEffect.shader` (`ProjectVania/WorldEffect`, a URP sprite shader with one keyword per preset)
+is the same arithmetic on the GPU, reading the texel with `Load` so the sampler's settings cannot change it.
+`WorldEffectMaterial` builds the one shared material from the data. The outline (its 1 x 1 pixel stretched, so vignetted
+along each strip), the backdrop, the characters' frames (in their strip's coordinates, as the original's source rectangles
+were) and the editor's world hand draw with it. The cells are one painted texture, so drawing it through the shader would
+vignette the whole canvas; instead Core paints each cell through `SpriteEffect` texel by texel in the tileset's
+coordinates (a cell is its tile's sprite) and the canvas draws with the plain sprite material. The refract sampler was
+never bound, so its displacement is zero and the filter is the plain vignette (RECONSTRUCTION 18.5 settled). Defect 19 is
+fixed: each sample is tinted before the effect. The names are UI Toolkit text in Unity's font, not glyphs of the original's
+sprite-font atlas, so a glyph has no place on that atlas to be vignetted by: each name's colour is its write's colour
+shaded as one white texel at the texture's middle, which applies every colour term of the preset (at the defaults the
+colour is unchanged; the atlas vignette was at most 0.7 % of a glyph's brightness). `bloom`, `negative`, `pause` and
+`water` are presets the data can select and nothing does, as in the original; each draws the world per sprite, as the
+commented-out `effect = "negative"` would have. The GUI is drawn after the world and through none of them, as
+`GuiManager` drew it. `unity.ps1 capture` draws the tileset through each preset (`effect-*.png`) and fails unless every
+pixel is within one level of Core's `SpriteEffect` (`effects.txt`); the five effects that exist only in the earlier copy
+(`basic`, `pointsprite`, `rain`, `snow`, `riemer`) are out of scope (§17).
 
 **HUD and text (U.VAN-US-A12).** Everything the original always drew is always drawn, every figure, text and colour
 hud.json's. Core's `Hud` holds what changes: `QuickBar` is `QuickBar.cs` (starts shown at (103, H - 105); U, in Play

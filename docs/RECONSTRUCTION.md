@@ -449,7 +449,15 @@ All five are built and loaded into `EffectManager`; only `filter` is ever used.
   `refractSampler` (unbound) to get a small texture-coordinate displacement `GetDif * 0.1`, darkens by
   `distance(tex, centre) * burn` (a vignette), applies saturation as
   `col = (col * sat + avg * (1 - sat)) * channelGain`, and adds `brite`. With the defaults it is a mild
-  vignette per sprite, texture-coordinate-local (distance is measured within each sprite's 0..1 UV).
+  vignette per sprite, texture-coordinate-local: the distance is measured in the coordinates of the texture the sprite
+  is drawn from, so a whole picture (the backdrop, the editor hand, the stretched 1 x 1 outline pixel) is vignetted
+  over itself, while a sprite cut from a sheet (a grid cell from the tileset, a character frame from its strip, a glyph
+  from the font) is darkened by where its texels lie on that sheet. The unbound `refractSampler` reads black (nothing
+  ever sets sampler 1), so `GetDif` is 0 and nothing is displaced.
+- None of the five reads the vertex colour (each pixel shader takes only `TEXCOORD0`), and a pass begun inside an
+  Immediate `SpriteBatch` replaces SpriteBatch's own pixel shader, so every tint drawn through `filter` is lost: the
+  names come out white, the editor hand never turns yellow or red, the editor's alpha-64 empty cells and its yellow
+  highlight draw as the plain tile (section 15, defect 19).
 - `negative.fx`: `col.rgb = 1 - col.rgb`. Selected by commented-out code only.
 - `bloom.fx`: 13-tap blur (12 Poisson offsets scaled by `v = 0.01`, averaged over 13), `col.a = 0.2`.
 - `pause.fx`: 12-tap blur at `0.005` followed by desaturation to the average.
@@ -787,6 +795,8 @@ Each is decided in the BIBLE: keep (it is the game's feel), fix, or drop.
 17. `MessageHandler.Update`'s stale `lastMessage` throws once the last message in the list is removed, reachable after a
     gamepad notice revives the front message (section 9.1).
 18. `InvokeMessage` drops the gamepad notice when no message is queued (section 9.1).
+19. The effects read no vertex colour, so every world sprite's tint (names, editor hand, translucent and highlighted
+    cells, a layer's colour) is dropped while `filter` is applied (section 6.1).
 
 ## 16. What the original does not have (so the rebuild must not invent it)
 
@@ -830,7 +840,7 @@ nor any code, and the rebuild treats them as out of scope (the BIBLE records the
 3. The window size: 800x600 is inferred; the back buffer was never set in code.
 4. Whether music should start by itself (the original never played it unless a console command asked).
 5. The refract sampler of `filter.fx` is unbound in the original; the rebuild decides the look
-   (the BIBLE chooses the plain vignette).
+   (settled: unbound reads black, so the plain vignette is the original's own look; built by U.VAN-T18).
 6. The Sun, ActionCross, portrait swap and quick bar contents are scaffolding with no designed content;
    the BIBLE keeps them as inert, data-described pieces.
 

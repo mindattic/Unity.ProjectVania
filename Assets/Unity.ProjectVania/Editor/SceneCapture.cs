@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Reflection;
 using Unity.ProjectVania.Core.Commands;
+using Unity.ProjectVania.Core.Display;
+using Unity.ProjectVania.Core.Settings;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -14,6 +16,8 @@ namespace Unity.ProjectVania.EditorTools
     /// characters fall and land and the Loose camera settle on player one, then captures the followed view, the view
     /// zoomed in and turned by the camera keys (the original's matrix: scale cubed, about the world origin), the map's
     /// top-left corner, and that corner with the editor open. The main menu's pictures (menu, menu-video), the console's (console-sliding, console, console-full-red), the HUD's (play-ui, hud-quickbar-away, hud-fade-half) and the map editor's (editor-paint, editor-palette) draw the UI Toolkit overlay over the camera's picture; the others are the camera alone, without the names or the HUD.
+    /// Last, each of the five effects (RECONSTRUCTION 6.1) draws the tileset as a sprite (effect-*.png) and every pixel is
+    /// checked against Core's <see cref="SpriteEffect"/>, so the GPU's shader is known to be the cells' arithmetic.
     /// </summary>
     public static class SceneCapture
     {
@@ -150,6 +154,8 @@ namespace Unity.ProjectVania.EditorTools
                 Present(host);
                 Save(camera, Path.Combine(output, "editor.png"));
 
+                CheckEffects(host, output);
+
                 UnityEngine.Object.DestroyImmediate(GameObject.Find(Bootstrap.RootName));
                 Debug.Log($"[ProjectVania] Captured to {Path.GetFullPath(output)}");
                 EditorApplication.Exit(0);
@@ -158,6 +164,96 @@ namespace Unity.ProjectVania.EditorTools
             {
                 Debug.LogError($"[ProjectVania] Capture failed: {e}");
                 EditorApplication.Exit(1);
+            }
+        }
+
+        /// <summary>
+        /// Draws the tileset unscaled through each preset's material over black and compares every pixel with Core's shade
+        /// of the same texel drawn over black; throws if any channel is off by more than <paramref name="tolerance"/>.
+        /// </summary>
+        static void CheckEffects(GameHost host, string output, int tolerance = 1)
+        {
+            var texture = Resources.Load<Texture2D>(MapView.PathOf(host.Settings.Grid.TilesetAsset));
+            var source = MapView.Download(texture);
+            var origin = new Vector3(1000f, 1000f, 0f);
+            var cameraObject = new GameObject("EffectCheckCamera");
+            var spriteObject = new GameObject("EffectCheckSprite", typeof(SpriteRenderer));
+            var report = new System.Text.StringBuilder();
+            try
+            {
+                const int layer = 31;
+                var camera = cameraObject.AddComponent<Camera>();
+                camera.transform.position = origin + new Vector3(0f, 0f, -10f);
+                camera.clearFlags = CameraClearFlags.SolidColor;
+                camera.backgroundColor = Color.black;
+                camera.cullingMask = 1 << layer;
+                camera.orthographic = true;
+                camera.orthographicSize = 600f / 2f / 16f;
+                camera.aspect = 800f / 600f;
+
+                // The sprite's top-left on the view's top-left pixel, one texel a pixel.
+                var renderer = spriteObject.GetComponent<SpriteRenderer>();
+                spriteObject.layer = layer;
+                renderer.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0f, 1f), 16f, 0, SpriteMeshType.FullRect);
+                spriteObject.transform.position = origin + new Vector3(-400f / 16f, 300f / 16f, 0f);
+
+                var black = new Rgba(0, 0, 0, 255);
+                foreach (EffectPreset preset in Enum.GetValues(typeof(EffectPreset)))
+                {
+                    var material = WorldEffectMaterial.Create(preset, host.Settings.Effects);
+                    renderer.sharedMaterial = material;
+                    var effect = new SpriteEffect(preset, host.Settings.Effects);
+                    var target = new RenderTexture(800, 600, 24, RenderTextureFormat.ARGB32);
+                    var previousActive = RenderTexture.active;
+                    var image = new Texture2D(800, 600, TextureFormat.RGB24, false);
+                    try
+                    {
+                        camera.targetTexture = target;
+                        camera.Render();
+                        camera.Render(); // the pipeline's first render of a new camera can be incomplete
+                        RenderTexture.active = target;
+                        image.ReadPixels(new Rect(0, 0, 800, 600), 0, 0);
+                        image.Apply();
+                        File.WriteAllBytes(Path.Combine(output, $"effect-{preset.ToString().ToLowerInvariant()}.png"), image.EncodeToPNG());
+                    }
+                    finally
+                    {
+                        camera.targetTexture = null;
+                        RenderTexture.active = previousActive;
+                        UnityEngine.Object.DestroyImmediate(target);
+                        UnityEngine.Object.DestroyImmediate(material);
+                    }
+
+                    var worst = 0;
+                    var worstAt = (0, 0);
+                    for (var y = 0; y < source.Height; y++)
+                    {
+                        for (var x = 0; x < source.Width; x++)
+                        {
+                            var expected = Rgba.Over(effect.ShadeTexel(source, x, y, Rgba.White), black);
+                            Color32 shown = image.GetPixel(x, 599 - y);
+                            var off = Math.Max(Math.Abs(shown.r - expected.R), Math.Max(Math.Abs(shown.g - expected.G), Math.Abs(shown.b - expected.B)));
+                            if (off > worst)
+                            {
+                                worst = off;
+                                worstAt = (x, y);
+                            }
+                        }
+                    }
+
+                    UnityEngine.Object.DestroyImmediate(image);
+                    report.AppendLine($"{preset}: largest difference from Core {worst} at {worstAt}");
+                    if (worst > tolerance)
+                    {
+                        throw new InvalidOperationException($"The {preset} shader differs from Core's SpriteEffect by {worst} at texel {worstAt}.");
+                    }
+                }
+            }
+            finally
+            {
+                File.WriteAllText(Path.Combine(output, "effects.txt"), report.ToString());
+                UnityEngine.Object.DestroyImmediate(spriteObject);
+                UnityEngine.Object.DestroyImmediate(cameraObject);
             }
         }
 
