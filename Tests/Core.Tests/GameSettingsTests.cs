@@ -252,6 +252,31 @@ namespace Unity.ProjectVania.Core.Tests
             Assert.That(content.SpriteSheets.Assets.Count, Is.EqualTo(16));
             Assert.That(content.UnwiredCharacterArt.Sheet, Is.EqualTo("richter"));
             Assert.That(content.UnwiredCharacterArt.Size.XInt, Is.EqualTo(640));
+            Assert.That(content.OrphanCharacterArt.Assets, Is.EquivalentTo(new[] { "Untitled", "frame_10" }));
+            Assert.That(content.Textures.LoadedButUnused, Is.EquivalentTo(new[] { "white", "brick", "console2", "foggy_woods", "metal1" }));
+            Assert.That(content.Textures.NeverLoaded, Is.EquivalentTo(new[] { "block", "menu2" }));
+            Assert.That(content.HudMockups.LoadedButUnused, Is.EquivalentTo(new[] { "bar_health" }));
+            Assert.That(content.HudMockups.NeverLoaded, Is.EquivalentTo(new[] { "demo_gui", "demo_gui_0", "gui_0", "gui_1" }));
+            Assert.That(content.MapEditorArt.UsedForDebugBox, Is.EqualTo("cell"));
+            Assert.That(content.MapEditorArt.LoadedButUnused, Is.EquivalentTo(new[] { "block" }));
+            Assert.That(content.Application.Asset, Is.EqualTo("GameThumbnail"));
+            Assert.That(content.Fonts.Entries.Select(f => f.Name), Is.EquivalentTo(new[] { "Arial_10", "Lucida", "Webdings_14" }));
+            Assert.That(content.Fonts.Entries.Single(f => f.Name == "Webdings_14").Used, Is.False);
+        }
+
+        [Test]
+        public void ContentFontCount_MustBeAllThree()
+        {
+            var e = LoadFails(Patched(GameSettings.ContentFile, t => t.Replace(
+                ",\n      { \"name\": \"Webdings_14\", \"family\": \"Webdings\", \"points\": 14, \"region\": [32, 126], \"used\": false }", "")));
+            Assert.That(e.Errors.Single(), Does.Contain("fonts").And.Contain("all three"));
+        }
+
+        [Test]
+        public void ContentOrphanCharacterArtCount_MustBeTwo()
+        {
+            var e = LoadFails(Patched(GameSettings.ContentFile, t => t.Replace("\"assets\": [\"Untitled\", \"frame_10\"]", "\"assets\": [\"Untitled\"]")));
+            Assert.That(e.Errors.Single(), Does.Contain("orphanCharacterArt"));
         }
 
         [Test]

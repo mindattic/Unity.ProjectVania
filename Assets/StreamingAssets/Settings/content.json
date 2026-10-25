@@ -80,5 +80,36 @@
     "_about": "Characters\\Playable\\Richter (RECONSTRUCTION 13): idle and run strips, never loaded by the original (unlike Shanoa and Leo, whose sheets the original loaded though unused; this rebuild already made Shanoa and Leo playable in characters.json, owner decision U.VAN-T25). Richter has no character entry in characters.json and stays unwired.",
     "sheet": "richter",
     "size": [640, 64]
+  },
+  "orphanCharacterArt": {
+    "_about": "Characters\\Playable\\Untitled.png (768x64) and Characters\\frame_10.png (640x64) (RECONSTRUCTION 13, U.VAN-US-A17): two more idle/run strips beside Richter's, never loaded by the original and never wired to any character. Kept at Resources/Characters as the original's own files.",
+    "assets": ["Untitled", "frame_10"]
+  },
+  "textures": {
+    "_about": "Content\\Textures (RECONSTRUCTION 13, U.VAN-US-A17): the pictures beside the ones already drawn or kept above (menu1, console1, cursor, red and blank). white is a second 1x1, loaded but undrawn; brick, console2, foggy_woods and metal1 are loaded but never drawn; block and menu2 are never loaded at all. This folder's block.png is the original's own second picture of that name: kept at Resources/Gui/block, distinct from MapEditor\\block.png (Resources/World/block, see mapEditorArt below).",
+    "loadedButUnused": ["white", "brick", "console2", "foggy_woods", "metal1"],
+    "neverLoaded": ["block", "menu2"]
+  },
+  "hudMockups": {
+    "_about": "Gui\\Hud (RECONSTRUCTION 13, U.VAN-US-A17): bar_health (135x17) is loaded like the rest of Hud but never drawn, since no health bar is ever shown; demo_gui, demo_gui_0, gui_0 and gui_1 (800x600 each) are mock-up screens built into the content project but never loaded by the original at all.",
+    "loadedButUnused": ["bar_health"],
+    "neverLoaded": ["demo_gui", "demo_gui_0", "gui_0", "gui_1"]
+  },
+  "mapEditorArt": {
+    "_about": "MapEditor (RECONSTRUCTION 13, U.VAN-US-A17): block.png (76x76) and cell.png (16x16) sit beside maps1 (segmentAtlas, above) and null (Content\\Textures\\blank.png, drawn as the editor's outline and fills, kept as content.json's actionCross.blankIcon). null and cell are the only two of this folder ever drawn (cell as the debug box); block is loaded but never drawn. Kept at Resources/World/cell and Resources/World/block.",
+    "usedForDebugBox": "cell",
+    "loadedButUnused": ["block"]
+  },
+  "application": {
+    "_about": "Content\\Application\\GameThumbnail.png (64x64) (RECONSTRUCTION 13, U.VAN-US-A17): the ClickOnce installer's icon, loaded by the deployment manifest rather than the game's own content pipeline, and never drawn in-game. Kept at Resources/Gui as the original's own file.",
+    "asset": "GameThumbnail"
+  },
+  "fonts": {
+    "_about": "Content\\Fonts (RECONSTRUCTION 13, U.VAN-US-A17): the three .spritefont descriptors the original built; each names a system font the content pipeline rasterised into a bitmap font at build time, so no binary font file ships (player.json/hud.json/console.json/menu.json already carry Arial's and Lucida Console's point sizes as settings data). All three are loaded; Arial writes every HUD and console line, Lucida Console writes menu items, and Webdings is loaded but never used for any text.",
+    "entries": [
+      { "name": "Arial_10", "family": "Arial", "points": 10, "region": [32, 126], "used": true },
+      { "name": "Lucida", "family": "Lucida Console", "points": 14, "region": [32, 126], "used": true },
+      { "name": "Webdings_14", "family": "Webdings", "points": 14, "region": [32, 126], "used": false }
+    ]
   }
 }

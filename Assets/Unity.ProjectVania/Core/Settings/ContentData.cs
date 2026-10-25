@@ -32,6 +32,12 @@ namespace Unity.ProjectVania.Core.Settings
         public AssetInventory Banners { get; private set; }
         public AssetInventory SpriteSheets { get; private set; }
         public UnwiredCharacterArt UnwiredCharacterArt { get; private set; }
+        public AssetInventory OrphanCharacterArt { get; private set; }
+        public UnusedAssetInventory Textures { get; private set; }
+        public UnusedAssetInventory HudMockups { get; private set; }
+        public MapEditorArtData MapEditorArt { get; private set; }
+        public ApplicationAsset Application { get; private set; }
+        public FontInventory Fonts { get; private set; }
 
         internal static ContentData Read(SettingsReader r)
         {
@@ -49,11 +55,21 @@ namespace Unity.ProjectVania.Core.Settings
                 Banners = r.Section("banners", AssetInventory.Read),
                 SpriteSheets = r.Section("spriteSheets", AssetInventory.Read),
                 UnwiredCharacterArt = r.Section("unwiredCharacterArt", UnwiredCharacterArt.Read),
+                OrphanCharacterArt = r.Section("orphanCharacterArt", AssetInventory.Read),
+                Textures = r.Section("textures", UnusedAssetInventory.Read),
+                HudMockups = r.Section("hudMockups", UnusedAssetInventory.Read),
+                MapEditorArt = r.Section("mapEditorArt", MapEditorArtData.Read),
+                Application = r.Section("application", ApplicationAsset.Read),
+                Fonts = r.Section("fonts", FontInventory.Read),
             };
             r.Check(data.Particles.Assets.Count == 5, "particles", "must list the original's five particle pictures");
             r.Check(data.Selectors.Assets.Count == 5, "selectors", "must list the original's five selector sizes");
             r.Check(data.Banners.Assets.Count == 15, "banners", "must list the original's fifteen banners");
             r.Check(data.SpriteSheets.Assets.Count == 16, "spriteSheets", "must list the original's sixteen character sheets");
+            r.Check(data.OrphanCharacterArt.Assets.Count == 2, "orphanCharacterArt", "must list Untitled and frame_10");
+            r.Check(data.Textures.LoadedButUnused.Count + data.Textures.NeverLoaded.Count == 7, "textures", "must list the original's seven remaining Textures pictures");
+            r.Check(data.HudMockups.LoadedButUnused.Count + data.HudMockups.NeverLoaded.Count == 5, "hudMockups", "must list the original's five remaining Hud pictures");
+            r.Check(data.Fonts.Entries.Count == 3, "fonts", "must list all three of the original's fonts");
 
             // Every ActionCross slot must name either the blank texture or one of the inventoried icons (the skills
             // list holds bare names, e.g. "selectsquad", matched here against the slot's own "icon_selectsquad").
@@ -288,5 +304,95 @@ namespace Unity.ProjectVania.Core.Settings
             Sheet = r.Text("sheet"),
             Size = r.Pair("size", 1f),
         };
+    }
+
+    /// <summary>
+    /// A flat inventory split by whether the original's content manager ever loaded it (RECONSTRUCTION 13,
+    /// U.VAN-US-A17): <see cref="LoadedButUnused"/> names pictures a manager loaded but nothing ever drew;
+    /// <see cref="NeverLoaded"/> names pictures the content project built that no manager ever loaded at all.
+    /// Both are kept as the original's own files regardless.
+    /// </summary>
+    public sealed class UnusedAssetInventory
+    {
+        public IReadOnlyList<string> LoadedButUnused { get; private set; }
+        public IReadOnlyList<string> NeverLoaded { get; private set; }
+
+        internal static UnusedAssetInventory Read(SettingsReader r)
+        {
+            var data = new UnusedAssetInventory
+            {
+                LoadedButUnused = r.Texts("loadedButUnused", allowEmpty: true),
+                NeverLoaded = r.Texts("neverLoaded", allowEmpty: true),
+            };
+            var seen = new HashSet<string>();
+            foreach (var asset in data.LoadedButUnused.Concat(data.NeverLoaded))
+            {
+                r.Check(seen.Add(asset), "loadedButUnused/neverLoaded", $"lists '{asset}' twice");
+            }
+
+            return data;
+        }
+    }
+
+    /// <summary><c>Content\MapEditor</c> (RECONSTRUCTION 13, U.VAN-US-A17): block.png and cell.png, beside maps1
+    /// (<see cref="SegmentAtlasData"/>) and null (<c>Textures\blank.png</c>, <see cref="ActionCrossData.BlankIcon"/>).</summary>
+    public sealed class MapEditorArtData
+    {
+        public string UsedForDebugBox { get; private set; }
+        public IReadOnlyList<string> LoadedButUnused { get; private set; }
+
+        internal static MapEditorArtData Read(SettingsReader r) => new MapEditorArtData
+        {
+            UsedForDebugBox = r.Text("usedForDebugBox"),
+            LoadedButUnused = r.Texts("loadedButUnused"),
+        };
+    }
+
+    /// <summary><c>Content\Application\GameThumbnail.png</c> (RECONSTRUCTION 13, U.VAN-US-A17): the ClickOnce
+    /// installer's icon, loaded by the deployment manifest rather than the game's content pipeline.</summary>
+    public sealed class ApplicationAsset
+    {
+        public string Asset { get; private set; }
+
+        internal static ApplicationAsset Read(SettingsReader r) => new ApplicationAsset
+        {
+            Asset = r.Text("asset"),
+        };
+    }
+
+    /// <summary><c>Content\Fonts</c> (RECONSTRUCTION 13, U.VAN-US-A17): the three .spritefont descriptors the
+    /// original built, each naming a system font rasterised at build time; no binary font file ships.</summary>
+    public sealed class FontInventory
+    {
+        public IReadOnlyList<FontEntry> Entries { get; private set; }
+
+        internal static FontInventory Read(SettingsReader r) => new FontInventory
+        {
+            Entries = r.Each("entries", FontEntry.Read),
+        };
+    }
+
+    public sealed class FontEntry
+    {
+        public string Name { get; private set; }
+        public string Family { get; private set; }
+        public float Points { get; private set; }
+        public int RegionStart { get; private set; }
+        public int RegionEnd { get; private set; }
+        public bool Used { get; private set; }
+
+        internal static FontEntry Read(SettingsReader r)
+        {
+            var region = r.Pair("region", 1f);
+            return new FontEntry
+            {
+                Name = r.Text("name"),
+                Family = r.Text("family"),
+                Points = r.Positive("points"),
+                RegionStart = region.XInt,
+                RegionEnd = region.YInt,
+                Used = r.Flag("used"),
+            };
+        }
     }
 }
