@@ -285,6 +285,9 @@ namespace Unity.ProjectVania.Core.Settings
             return list;
         }
 
+        /// <summary>Whether this object has <paramref name="key"/> at all, for the few keys that pick between two forms of an entry.</summary>
+        public bool Has(string key) => _object?.Get(key) != null;
+
         /// <summary>A cross-field check: records <paramref name="message"/> against <paramref name="key"/> when <paramref name="ok"/> is false.</summary>
         public void Check(bool ok, string key, string message)
         {

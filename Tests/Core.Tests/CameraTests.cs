@@ -279,7 +279,8 @@ namespace Unity.ProjectVania.Core.Tests
             Assert.That(world.Camera(P1), Is.Not.Null);
             Assert.That(world.Camera(new PlayerId(1)), Is.Not.Null);
             Assert.That(world.Camera(new PlayerId(1)), Is.Not.SameAs(world.Camera(P1)));
-            Assert.That(world.Camera(new PlayerId(2)), Is.Null);
+            Assert.That(world.Camera(new PlayerId(2)), Is.Not.Null, "three spawn positions, three characters (U.VAN-T25)");
+            Assert.That(world.Camera(new PlayerId(3)), Is.Null);
             Assert.That(world.Camera(default), Is.Null);
 
             var s = Settings();

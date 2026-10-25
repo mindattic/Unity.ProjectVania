@@ -36,10 +36,10 @@ namespace Unity.ProjectVania.Core.Tests
 
         private static GameSettings Load() => GameSettings.Load(Shipped);
 
-        private static MemorySettingsSource Patched(string file, Func<string, string> change) =>
+        internal static MemorySettingsSource Patched(string file, Func<string, string> change) =>
             new MemorySettingsSource(Shipped).Set(file, change(Shipped.Read(file)));
 
-        private static SettingsException LoadFails(ISettingsSource source) =>
+        internal static SettingsException LoadFails(ISettingsSource source) =>
             Assert.Throws<SettingsException>(() => GameSettings.Load(source));
 
         [Test]
@@ -76,7 +76,7 @@ namespace Unity.ProjectVania.Core.Tests
             Assert.That(p.SlideFriction, Is.EqualTo(0.7f));
             Assert.That(p.SlideUnitSize.XInt, Is.EqualTo(3));
             Assert.That(p.SlideUnitSize.YInt, Is.EqualTo(1));
-            Assert.That(p.SpawnPositions.Count, Is.EqualTo(2));
+            Assert.That(p.SpawnPositions.Count, Is.EqualTo(3), "the original's two and Leo's (U.VAN-T25)");
             Assert.That(p.ResetPosition.X, Is.EqualTo(500f));
             Assert.That(p.Ability.WallJump, Is.True);
             Assert.That(p.Ability.BulletTime, Is.False);
@@ -92,6 +92,45 @@ namespace Unity.ProjectVania.Core.Tests
             var playable = settings.Characters.Characters.Where(c => c.Playable).Select(c => c.Name);
             Assert.That(playable, Is.EquivalentTo(new[] { "Morris", "Shanoa", "Leo" }));
             Assert.That(settings.Characters.Characters.All(c => c.MoveSet.Count > 0));
+        }
+
+        [Test]
+        public void TheRosterIsMorrisShanoaAndLeoWithTheirMoveSets()
+        {
+            var characters = Load().Characters;
+            Assert.That(characters.Roster.Select(c => c.Name), Is.EqualTo(new[] { "Morris", "Shanoa", "Leo" }));
+            Assert.That(characters.Find("Shanoa").MoveSet, Is.EquivalentTo(characters.Find("Morris").MoveSet));
+            Assert.That(characters.Find("Leo").MoveSet,
+                Is.EquivalentTo(new[] { ActionKind.Standing, ActionKind.Running, ActionKind.Jumping, ActionKind.Falling }));
+        }
+
+        [Test]
+        public void ARosterLongerThanTheSpawnPositionsOrNamingNoCharacter_IsRejected()
+        {
+            var e = LoadFails(Patched(GameSettings.CharactersFile, t => t.Replace("[\"Morris\", \"Shanoa\", \"Leo\"]", "[\"Morris\", \"Shanoa\", \"Leo\", \"Leo\"]")));
+            Assert.That(e.Errors.Single(), Does.Contain("only 3 spawn positions"));
+            e = LoadFails(Patched(GameSettings.CharactersFile, t => t.Replace("[\"Morris\", \"Shanoa\", \"Leo\"]", "[\"Morris\", \"Richter\"]")));
+            Assert.That(e.Errors.Single(), Does.Contain("'Richter', which is not one of the characters"));
+        }
+
+        [Test]
+        public void AMoveWithoutItsStripOrAMoveSetWithoutStandingRunningAndFalling_IsRejected()
+        {
+            var e = LoadFails(Patched(GameSettings.CharactersFile, t => t.Replace(
+                "\"moveSet\": [\"Standing\", \"Running\", \"Jumping\", \"Falling\"]", "\"moveSet\": [\"Standing\", \"Running\", \"Jumping\", \"Falling\", \"Kneeling\"]")));
+            Assert.That(e.Errors.Single(), Does.Contain("sheet 'leo' has no 'kneel' animation"));
+            e = LoadFails(Patched(GameSettings.CharactersFile, t => t.Replace(
+                "\"moveSet\": [\"Standing\", \"Running\", \"Jumping\", \"Falling\"]", "\"moveSet\": [\"Standing\", \"Running\", \"Jumping\"]")));
+            Assert.That(e.Errors.Single(), Does.Contain("must include Falling"));
+        }
+
+        [Test]
+        public void TheStructuresAreBlocksOfWholeCellsInsideTheGrid()
+        {
+            var grid = Load().Grid;
+            Assert.That(grid.Blocks, Has.Count.EqualTo(6));
+            var e = LoadFails(Patched(GameSettings.GridFile, t => t.Replace("\"from\": [35, 12], \"to\": [37, 12]", "\"from\": [35, 12], \"to\": [200, 12]")));
+            Assert.That(e.Errors.Single(), Does.Contain("reaches outside the grid"));
         }
 
         [Test]
@@ -291,7 +330,7 @@ namespace Unity.ProjectVania.Core.Tests
         [Test]
         public void PlayerSpawnOutsideTheMap_IsRejected()
         {
-            var e = LoadFails(Patched(GameSettings.PlayerFile, t => t.Replace("[[500, 100], [550, 100]]", "[[5000, 100], [550, 100]]")));
+            var e = LoadFails(Patched(GameSettings.PlayerFile, t => t.Replace("[[500, 100], [550, 100], [450, 100]]", "[[5000, 100], [550, 100], [450, 100]]")));
             Assert.That(e.Errors.Single(), Does.Contain("outside"));
         }
 

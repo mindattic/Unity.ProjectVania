@@ -37,9 +37,9 @@ namespace Unity.ProjectVania
         public void Initialize(GameSettings settings)
         {
             Settings = settings;
-            // Both spawned characters are the default one, each with a fresh random name, as the original's two Morrises.
-            var character = settings.Characters.Find(settings.Characters.DefaultCharacter);
-            World = new GameWorld(Map.FromSettings(settings.Grid), settings.Player, character, settings.Names, new System.Random(), settings.Camera, settings.Menu,
+            // characters.json's roster, each with a fresh random name (owner decision, U.VAN-T25: Morris, Shanoa and Leo,
+            // where the original spawned two Morrises).
+            World = new GameWorld(Map.FromSettings(settings.Grid), settings.Player, settings.Characters.Roster, settings.Names, new System.Random(), settings.Camera, settings.Menu,
                 settings.Console, settings.Audio, settings.Hud, settings.Animations, settings.Editor);
             Device?.Dispose();
             Device = new InputSystemDevice(settings.Input.StickPressPoint);

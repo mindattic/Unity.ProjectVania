@@ -44,11 +44,18 @@ namespace Unity.ProjectVania.Core.Characters
         public static string ClipFor(PlayerCharacter character)
         {
             if (character == null) throw new ArgumentNullException(nameof(character));
-            switch (character.Action)
+            if (character.Action == ActionKind.Jumping && !character.IsJumping) return null;
+            return ClipFor(character.Action);
+        }
+
+        /// <summary>The strip <paramref name="action"/> plays (idle, run, jump, ...), or null for Hanging, which plays nothing.</summary>
+        public static string ClipFor(ActionKind action)
+        {
+            switch (action)
             {
                 case ActionKind.Standing: return Idle;
                 case ActionKind.Running: return Run;
-                case ActionKind.Jumping: return character.IsJumping ? Jump : null;
+                case ActionKind.Jumping: return Jump;
                 case ActionKind.Falling: return Fall;
                 case ActionKind.WallSliding: return WallSlide;
                 case ActionKind.Kneeling: return Kneel;
@@ -58,9 +65,10 @@ namespace Unity.ProjectVania.Core.Characters
         }
 
         /// <summary>
-        /// Plays the strip <paramref name="character"/>'s action calls for. A sheet without that strip (Shanoa and Leo
-        /// have only idle and run) plays idle: the original threw <c>KeyNotFoundException</c> there and crashed, which
-        /// the rebuild does not carry over (BIBLE, characters).
+        /// Plays the strip <paramref name="character"/>'s action calls for. A sheet without that strip plays idle: the
+        /// original threw <c>KeyNotFoundException</c> there and crashed, which the rebuild does not carry over (BIBLE,
+        /// characters). The shipped sheets have every strip their character's move set plays (U.VAN-T25: Shanoa's and
+        /// Leo's missing ones borrow frames of their own idle and run strips, animations.json).
         /// </summary>
         public void Select(PlayerCharacter character)
         {

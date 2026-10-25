@@ -20,8 +20,8 @@
   "slideUnitSize": [3, 1],
   "ceilingHeightCells": 3,
   "spawn": {
-    "_about": "SceneManager.LoadContent creates two players; Reset (R) puts every player back at the reset position (4.9: both go to 500,100 in the original).",
-    "positions": [[500, 100], [550, 100]],
+    "_about": "SceneManager.LoadContent creates two players, at (500, 100) and (550, 100); the rebuild spawns characters.json's roster of three, the third (Leo) at (450, 100) (U.VAN-T25). Each falls straight down to the floor: no structure stands in columns 28, 31 or 34. Reset (R) puts every player back at the reset position (4.9: all go to 500,100 as in the original).",
+    "positions": [[500, 100], [550, 100], [450, 100]],
     "resetPosition": [500, 100]
   },
   "abilities": {

@@ -70,10 +70,31 @@ frame-based constant (gravity, drag, the 1 alpha/frame fade) stays per step. Fra
 original's: input -> players -> camera -> GUI -> editor (§1). The animation clock advances when drawn,
 as the original's did (§4.8).
 
-**Two players.** Both are spawned at (500,100) and (550,100), both simulate, `[` / `]` / L1 / R1 cycle
-who is driven and followed (§4). The idle twin is kept (the open question in §18.2 defaults to "as
-original"); commands carry a player id so a second driver later is a one-line change, per the rebuild
-standard.
+**Three playable characters (owner decision 2026-10-23, built by U.VAN-T25).** The original spawned two Morrises at
+(500,100) and (550,100), the second only standing idle while `[` / `]` / L1 / R1 cycled control (§4); Shanoa and Leo
+were reachable only by editing a field, and would have crashed on their first jump. The rebuild spawns characters.json's
+`roster`, Morris, Shanoa and Leo, at player.json's three spawn positions (the original's two, and Leo at (450,100)),
+each named from its own gender's table; all three simulate every Play step, and `[` / `]` / L1 / R1 cycle who is driven
+and followed through all three, wrapping both ways, the one left behind letting go (defect 16). A character's
+`moveSet` (characters.json) decides what it can do, read by `PlayerCharacter.Can`: Morris and Shanoa have the whole
+set (run, jump, fall, wall slide and wall jump, kneel, slide) on the same player.json figures and Shanoa's 1 x 3 size;
+Leo (1 x 2, an FFVI field sprite) stands, runs, jumps and falls only, so down neither kneels nor slides him and a wall
+does not catch him (in the air the terrain machine goes straight on to its floor tests, so he lands standing against a
+wall). Every move set must hold Standing, Running and Falling, and every move needs its strip in the sheet (checked on
+load). **The art.** The original ships only `idle` and `run` strips for Shanoa and Leo (no other art for either exists
+in any copy of the project), so animations.json's clips for their other moves *borrow* frames of their own run strips
+(`{ name, strip, frameIndices, frameTime, loop }`; `CharacterArt` cuts the listed frames): Shanoa's jump is run frames
+2-3, fall 3, wall slide 9, kneel 4 (her lowest pose), slide 5, at Morris's frame times; Leo's jump is his run's crouch
+then stride (0, 2: the same poses as cells (0, 3) and (2, 3) of the original's unused `SpriteSheets/leo.png`, which has
+no jump pose either) and his fall holds the stride. These are stand-ins: a real strip dropped into
+`Resources/Characters/<sheet>/` replaces one by changing its entry to the `width` / `frames` form. **The structures.**
+grid.json's `structures` add six blocks of Hard cells between the bridge's walls, in the bridge's tile, for Leo to climb
+and jump across (anyone can use them): a 3-high and a 6-high step against the right wall, then two-cell ledges each 3
+rows higher zigzagging across 1- to 3-column gaps, the top one 18 cells above the floor; a Core test climbs them with
+Leo from the floor to the top using only runs and jumps. Columns 28, 31 and 34 (the spawn and reset columns) stay clear
+so everyone still falls straight to the floor, columns 21-26 stay clear so the left wall is the original's for wall
+slides and wall jumps, and rows 27-29 are clear left of the steps so the floor is walkable. Commands carry a player id,
+so a second driver later is a one-line change, per the rebuild standard.
 
 **Defects of RECONSTRUCTION §15, decided.**
 
@@ -139,7 +160,7 @@ collisions and the terrain machine, drag, bounds, the move, and the action, exac
 per-frame arithmetic is single precision with the frame XNA actually reported, `TimeSpan.FromTicks(166667)` =
 0.0166667 s (`FixedStepper.OriginalElapsedSeconds`), not 1/60: so the jump curve runs 35 frames and falls on the 36th,
 and the idle-wall timer drops on the 61st frame. Every figure is player.json's, including the ceiling test's 3 cells.
-Both characters simulate every Play step; player n starts on character n and `[` / `]` move it (A7, below).
+Every character simulates every Play step; player n starts on character n and `[` / `]` move it (A7, below).
 Defect 1's fix leaves `isJumping` clear on a kneeling jump, and with the ordinary ground checks back the idle test stands
 the character the same frame, so the kneel-jump "slide" is a one-frame nudge of about 2 px (the original's was barely
 3 px before it trapped him); A18's play-through should say whether it wants a longer slide. Defect 2 restores the 1 x 3
@@ -161,9 +182,10 @@ PNGs under `Resources/Characters/<sheet>/`, imported unscaled and point-filtered
 Inspector), cut into 64 px frames pivoted at the bottom centre, so the sprite stands on the feet; Runtime draws
 characters in list order (a later one over an earlier one) at the position interpolated by the world's `Alpha`. The
 art faces left: facing right flips it and a wall jump inverts that; facing neither way (before the first move) does
-not flip. A sheet without a strip (Shanoa and Leo have only idle and run) plays idle instead of the original's
-`KeyNotFoundException` crash; U.VAN-T25 gives them their own moves. Both spawned characters are the default (Morris),
-as the original's two were. Each is named at spawn from names.json's table for its gender (defect 8's fix: every name
+not flip. A sheet without a strip plays idle instead of the original's `KeyNotFoundException` crash; the shipped
+sheets have every strip their character's move set plays (Shanoa's and Leo's borrowed, **Three playable characters**
+above). The spawned characters are characters.json's roster (Morris, Shanoa, Leo; the original's two were both Morris).
+Each is named at spawn from names.json's table for its gender (defect 8's fix: every name
 can be picked), and `SceneManager.DrawText` is kept exactly: the name written twice in an Arial 10 equivalent
 (Unity's built-in Arial, 13 px for 10 pt at XNA's 96 dpi), centred, red at (X - 1, Y - 100) and then yellow at
 (X, Y), each lifted by TextWriter's Top alignment (16 px measured height x 10 x 0.4 = 64 px), so the yellow name sits
@@ -378,7 +400,9 @@ proof of concept of the original's engine and toolbox and is then done.
 
 ## Decisions beyond the original (not yet made, flag when a story hits these)
 
-- Whether the idle twin should become a controllable second character (§18.2).
+- ~~Whether the idle twin should become a controllable second character (§18.2).~~ Decided by the owner 2026-10-23:
+  Morris, Shanoa and Leo are all playable, one driver cycling between them (U.VAN-T25, **Three playable characters**).
+- Real art for Shanoa's jump, fall, wall slide, kneel and slide and Leo's jump and fall (they borrow run frames now).
 - A real window size and aspect policy beyond the inferred 800 x 600 (§18.3).
 
 ## Laws

@@ -75,6 +75,17 @@ namespace Unity.ProjectVania.Core.Simulation
         /// </summary>
         public GameWorld(Map map, PlayerData player, Character character, NameData names, Random random, CameraData camera = null, MenuData menu = null,
             ConsoleData console = null, AudioData audio = null, HudData hud = null, AnimationData animations = null, EditorData editor = null)
+            : this(map, player, Repeat(character, player), names, random, camera, menu, console, audio, hud, animations, editor)
+        {
+        }
+
+        /// <summary>
+        /// The shipped world (owner decision, U.VAN-T25): characters.json's <paramref name="roster"/> (Morris, Shanoa, Leo),
+        /// character i at player.json's spawn position i, each named from its own gender's table; otherwise as the
+        /// single-character constructor. The roster may not be longer than the spawn positions.
+        /// </summary>
+        public GameWorld(Map map, PlayerData player, IReadOnlyList<Character> roster, NameData names, Random random, CameraData camera = null, MenuData menu = null,
+            ConsoleData console = null, AudioData audio = null, HudData hud = null, AnimationData animations = null, EditorData editor = null)
             : this(map)
         {
             _editorData = editor;
@@ -84,17 +95,30 @@ namespace Unity.ProjectVania.Core.Simulation
             if (hud != null) Hud = new Hud(hud);
             Muted = audio != null && audio.Muted;
             _player = player ?? throw new ArgumentNullException(nameof(player));
-            if (character == null) throw new ArgumentNullException(nameof(character));
+            if (roster == null) throw new ArgumentNullException(nameof(roster));
+            if (roster.Count > player.SpawnPositions.Count) throw new ArgumentException("The roster has more characters than player.json has spawn positions.", nameof(roster));
             if (names == null) throw new ArgumentNullException(nameof(names));
             if (random == null) throw new ArgumentNullException(nameof(random));
-            foreach (var spawn in player.SpawnPositions)
+            for (var i = 0; i < roster.Count; i++)
             {
+                var character = roster[i] ?? throw new ArgumentNullException(nameof(roster), "The roster names no character at " + i + ".");
+                var spawn = player.SpawnPositions[i];
                 var name = RandomName.Pick(names.For(character.Gender), random);
                 _characters.Add(new PlayerCharacter(player, character, new PixelVector(spawn.X, spawn.Y), name));
                 if (audio != null) _characterCues.Add(new CharacterCues(animations?.Find(character.Sheet), audio, FixedStepper.StepsPerSecond));
             }
 
             AddCameras(camera);
+        }
+
+        // The single-character worlds (the tests' and the original's): that character at every spawn position.
+        static IReadOnlyList<Character> Repeat(Character character, PlayerData player)
+        {
+            if (character == null) throw new ArgumentNullException(nameof(character));
+            if (player == null) throw new ArgumentNullException(nameof(player));
+            var roster = new Character[player.SpawnPositions.Count];
+            for (var i = 0; i < roster.Length; i++) roster[i] = character;
+            return roster;
         }
 
         // Player n starts on character n (DrivenIndex), so each character's player gets a camera; a world built without

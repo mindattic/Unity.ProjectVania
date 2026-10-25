@@ -55,7 +55,8 @@ namespace Unity.ProjectVania.Core.World
         /// <summary>
         /// The starting level, built as the original's constructor did: a fresh grid (<c>LoadGrid</c>), then
         /// <c>SpawnBridge</c>: every cell of the floor row and of each wall column Hard, opaque, with the bridge tile.
-        /// (SpawnBridge also set [38, 30] and [39, 30], which the floor row already covers.)
+        /// (SpawnBridge also set [38, 30] and [39, 30], which the floor row already covers.) Then the rebuild's block
+        /// structures (grid.json <c>structures</c>, U.VAN-T25).
         /// </summary>
         public static Map FromSettings(GridData grid)
         {
@@ -74,6 +75,20 @@ namespace Unity.ProjectVania.Core.World
                 for (int y = 0; y < map.Rows; y++)
                 {
                     map.Set(column, y, bridge);
+                }
+            }
+
+            // U.VAN-T25 (owner decision): the block structures between the walls, Hard like the bridge, for Leo (who
+            // cannot wall slide) to climb and jump across.
+            var block = new GridCell(CellState.Hard, 255, TileRect.FromQuad(grid.StructureTileBounds));
+            foreach (var structure in grid.Blocks)
+            {
+                for (int y = structure.From.YInt; y <= structure.To.YInt; y++)
+                {
+                    for (int x = structure.From.XInt; x <= structure.To.XInt; x++)
+                    {
+                        map.Set(x, y, block);
+                    }
                 }
             }
 

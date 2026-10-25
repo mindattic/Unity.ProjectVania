@@ -193,6 +193,12 @@ namespace Unity.ProjectVania.Core.Settings
 
         public IReadOnlyList<Character> Characters { get; private set; }
 
+        /// <summary>
+        /// Who is spawned, in order, one at each of player.json's spawn positions (owner decision, U.VAN-T25: Morris,
+        /// Shanoa and Leo; the original spawned two Morrises). <c>[</c> / <c>]</c> cycle through them in this order.
+        /// </summary>
+        public IReadOnlyList<Character> Roster { get; private set; }
+
         public Character Find(string name)
         {
             foreach (var character in Characters)
@@ -215,6 +221,16 @@ namespace Unity.ProjectVania.Core.Settings
                 Characters = r.Each("characters", Character.Read),
             };
             r.Check(data.Find(data.DefaultCharacter) != null, "defaultCharacter", "must name one of the characters");
+            var roster = new List<Character>();
+            foreach (var name in r.Texts("roster"))
+            {
+                var character = data.Find(name);
+                r.Check(character != null, "roster", $"names '{name}', which is not one of the characters");
+                r.Check(character == null || character.Playable, "roster", $"names '{name}', which is not playable");
+                if (character != null) roster.Add(character);
+            }
+
+            data.Roster = roster;
             var seen = new HashSet<string>();
             foreach (var character in data.Characters)
             {
@@ -284,15 +300,37 @@ namespace Unity.ProjectVania.Core.Settings
         public Gender Gender { get; private set; }
         public IReadOnlyList<ActionKind> MoveSet { get; private set; }
 
-        internal static Character Read(SettingsReader r) => new Character
+        /// <summary>Whether <paramref name="action"/> is in the character's move set.</summary>
+        public bool Can(ActionKind action)
         {
-            Name = r.Text("name"),
-            Sheet = r.Text("sheet"),
-            UnitSize = r.Pair("unitSize", 1f, 100f),
-            Playable = r.Flag("playable"),
-            Gender = r.Choice<Gender>("gender"),
-            MoveSet = r.Choices<ActionKind>("moveSet"),
-        };
+            foreach (var move in MoveSet)
+            {
+                if (move == action) return true;
+            }
+
+            return false;
+        }
+
+        internal static Character Read(SettingsReader r)
+        {
+            var character = new Character
+            {
+                Name = r.Text("name"),
+                Sheet = r.Text("sheet"),
+                UnitSize = r.Pair("unitSize", 1f, 100f),
+                Playable = r.Flag("playable"),
+                Gender = r.Choice<Gender>("gender"),
+                MoveSet = r.Choices<ActionKind>("moveSet"),
+            };
+
+            // Every character stands, runs and falls: the terrain machine reaches those whatever the controls do.
+            foreach (var required in new[] { ActionKind.Standing, ActionKind.Running, ActionKind.Falling })
+            {
+                r.Check(character.Can(required), "moveSet", $"must include {required} for '{character.Name}'");
+            }
+
+            return character;
+        }
     }
 
     /// <summary>animations.json: the animation table of RECONSTRUCTION 4.8.</summary>
@@ -362,6 +400,23 @@ namespace Unity.ProjectVania.Core.Settings
                 r.Check(seen.Add(a.Name), "animations", $"lists '{a.Name}' twice in {sheet.Sheet}");
             }
 
+            // A borrowed clip cuts its frames from a strip of the same sheet that has a PNG of its own.
+            foreach (var a in sheet.Animations)
+            {
+                if (!a.Borrowed) continue;
+                var source = sheet.Find(a.Strip);
+                if (source == null || source.Borrowed)
+                {
+                    r.Check(false, "animations", $"'{a.Name}' in {sheet.Sheet} borrows '{a.Strip}', which is not a strip of its own in that sheet");
+                    continue;
+                }
+
+                foreach (var index in a.FrameIndices)
+                {
+                    r.Check(index < source.Frames, "animations", $"'{a.Name}' in {sheet.Sheet} borrows frame {index} of '{a.Strip}', which has {source.Frames}");
+                }
+            }
+
             return sheet;
         }
     }
@@ -369,21 +424,60 @@ namespace Unity.ProjectVania.Core.Settings
     public sealed class AnimationClip
     {
         public string Name { get; private set; }
+
+        /// <summary>The PNG the frames are cut from (<c>&lt;sheet&gt;/&lt;Strip&gt;.png</c>): the clip's own name, or another strip of the sheet.</summary>
+        public string Strip { get; private set; }
+
+        /// <summary>The strip's width in pixels; 0 for a clip that borrows another strip's frames.</summary>
         public int Width { get; private set; }
+
         public int Frames { get; private set; }
         public float FrameTime { get; private set; }
         public bool Loop { get; private set; }
 
+        /// <summary>Whether this clip borrows frames of another strip (<see cref="Strip"/>) instead of having a PNG of its own.</summary>
+        public bool Borrowed => Strip != Name;
+
+        /// <summary>Which frames of <see cref="Strip"/> it plays, in order (0 .. Frames - 1 for a clip with its own strip).</summary>
+        public IReadOnlyList<int> FrameIndices { get; private set; }
+
+        /// <summary>The frame of <see cref="Strip"/> that this clip's frame <paramref name="frame"/> shows.</summary>
+        public int SourceFrame(int frame) => FrameIndices[frame];
+
         internal static AnimationClip Read(SettingsReader r, int frameSize)
         {
+            var name = r.Text("name");
+
+            // U.VAN-T25: a sheet without a strip for some action (Shanoa, Leo) borrows frames of one it has, as
+            // { "name", "strip", "frameIndices", "frameTime", "loop" } instead of width and frames.
+            if (r.Has("strip"))
+            {
+                var borrowed = new AnimationClip
+                {
+                    Name = name,
+                    Strip = r.Text("strip"),
+                    FrameIndices = r.Integers("frameIndices", 0, 1000),
+                    FrameTime = r.Positive("frameTime"),
+                    Loop = r.Flag("loop"),
+                };
+                borrowed.Frames = borrowed.FrameIndices.Count;
+                r.Check(borrowed.Frames > 0, "frameIndices", $"must list at least one frame for '{name}'");
+                r.Check(borrowed.Strip != name, "strip", $"must name another strip than '{name}' itself");
+                return borrowed;
+            }
+
             var clip = new AnimationClip
             {
-                Name = r.Text("name"),
+                Name = name,
                 Width = r.Integer("width", 1, 100000),
                 Frames = r.Integer("frames", 1, 1000),
                 FrameTime = r.Positive("frameTime"),
                 Loop = r.Flag("loop"),
             };
+            clip.Strip = name;
+            var indices = new int[clip.Frames];
+            for (var i = 0; i < indices.Length; i++) indices[i] = i;
+            clip.FrameIndices = indices;
             r.Check(frameSize <= 0 || clip.Frames == clip.Width / frameSize, "frames",
                 $"must be width / frameSize truncated ({clip.Width} / {frameSize} = {(frameSize > 0 ? clip.Width / frameSize : 0)}) for '{clip.Name}'");
             return clip;
@@ -408,6 +502,15 @@ namespace Unity.ProjectVania.Core.Settings
 
         /// <summary>How the map is drawn (grid.json draw: the clear colour, the outline and the layers).</summary>
         public MapDrawData Draw { get; private set; }
+
+        /// <summary>
+        /// The block structures built on the bridge level for Leo to climb and jump across (owner decision, U.VAN-T25; the
+        /// original's level was the bridge alone): each a rectangle of Hard cells.
+        /// </summary>
+        public IReadOnlyList<BlockData> Blocks { get; private set; }
+
+        /// <summary>The tileset rectangle every structure cell shows.</summary>
+        public float[] StructureTileBounds { get; private set; }
 
         /// <summary>Columns of cells (118 for 1900 / 16, truncated).</summary>
         public int Columns => MapWidth / CellSize;
@@ -440,6 +543,18 @@ namespace Unity.ProjectVania.Core.Settings
             data.StepsPerSecond = units.Steps;
             data.ReferenceScreen = r.Pair("referenceScreen", 1f);
             data.Draw = r.Section("draw", MapDrawData.Read);
+            var structures = r.Section("structures", s => new
+            {
+                Tile = s.Quad("tileBounds", 0f),
+                Blocks = s.Each("blocks", BlockData.Read, allowEmpty: true),
+            });
+            data.StructureTileBounds = structures.Tile;
+            data.Blocks = structures.Blocks;
+            foreach (var block in data.Blocks)
+            {
+                r.Check(data.CellSize <= 0 || (block.To.XInt < data.MapWidth / data.CellSize && block.To.YInt < data.MapHeight / data.CellSize),
+                    "structures", $"block '{block.Name}' reaches outside the grid");
+            }
             r.Check(data.PixelsPerUnit == data.CellSize, "units", "pixelsPerUnit must equal cellSize (one grid cell is one unit)");
             r.Check(data.StepsPerSecond == FixedStepper.StepsPerSecond, "units", $"stepsPerSecond must equal the stepper's {FixedStepper.StepsPerSecond}");
             r.Check(data.MapWidth >= data.CellSize && data.MapHeight >= data.CellSize, "cellSize", "must fit inside the map");
@@ -453,8 +568,34 @@ namespace Unity.ProjectVania.Core.Settings
         }
     }
 
+    /// <summary>grid.json structures.blocks: one rectangle of Hard cells, by cell index, both corners included.</summary>
+    public sealed class BlockData
+    {
+        public string Name { get; private set; }
+
+        /// <summary>The top-left cell (column, row).</summary>
+        public Pair From { get; private set; }
+
+        /// <summary>The bottom-right cell (column, row), included.</summary>
+        public Pair To { get; private set; }
+
+        internal static BlockData Read(SettingsReader r)
+        {
+            var block = new BlockData
+            {
+                Name = r.Text("name"),
+                From = r.Pair("from", 0f, 100000f),
+                To = r.Pair("to", 0f, 100000f),
+            };
+            r.Check(block.From.X == block.From.XInt && block.From.Y == block.From.YInt && block.To.X == block.To.XInt && block.To.Y == block.To.YInt,
+                "from", $"block '{block.Name}' must name whole cells");
+            r.Check(block.From.X <= block.To.X && block.From.Y <= block.To.Y, "to", $"block '{block.Name}' must not end before it starts");
+            return block;
+        }
+    }
+
     /// <summary>
-    /// grid.json draw: <c>SceneManager.Draw</c>'s clear colour and <c>Map.Draw</c>'s outline and layers (RECONSTRUCTION 5,
+    /// grid.json draw:<c>SceneManager.Draw</c>'s clear colour and <c>Map.Draw</c>'s outline and layers (RECONSTRUCTION 5,
     /// 6). Colours are [r, g, b, a] of 0..255.
     /// </summary>
     public sealed class MapDrawData

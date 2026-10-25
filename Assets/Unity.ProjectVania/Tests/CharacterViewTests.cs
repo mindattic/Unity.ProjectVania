@@ -49,11 +49,11 @@ namespace Unity.ProjectVania.Tests
                     var frames = art.Frames(sheet.Sheet, clip);
                     Assert.That(frames, Is.Not.Null, $"{sheet.Sheet}/{clip.Name}");
                     Assert.That(frames.Length, Is.EqualTo(clip.Frames), $"{sheet.Sheet}/{clip.Name}");
-                    Assert.That(frames[0].texture.width, Is.EqualTo(clip.Width), $"{sheet.Sheet}/{clip.Name} is imported unscaled");
+                    Assert.That(frames[0].texture.width, Is.EqualTo(sheet.Find(clip.Strip).Width), $"{sheet.Sheet}/{clip.Strip} is imported unscaled");
                     Assert.That(frames[0].texture.filterMode, Is.EqualTo(FilterMode.Point));
                     for (var i = 0; i < frames.Length; i++)
                     {
-                        Assert.That(frames[i].rect, Is.EqualTo(new Rect(i * 64, 0, 64, 64)));
+                        Assert.That(frames[i].rect, Is.EqualTo(new Rect(clip.SourceFrame(i) * 64, 0, 64, 64)), "a borrowed clip cuts the frames it lists");
                         Assert.That(frames[i].pivot, Is.EqualTo(new Vector2(32, 0)), "bottom centre");
                         Assert.That(frames[i].pixelsPerUnit, Is.EqualTo(settings.Grid.PixelsPerUnit));
                     }
@@ -66,7 +66,7 @@ namespace Unity.ProjectVania.Tests
         {
             var views = _host.GetComponentsInChildren<CharacterView>();
             Assert.That(views.Length, Is.EqualTo(_host.World.Characters.Count));
-            Assert.That(views.Length, Is.EqualTo(2));
+            Assert.That(views.Length, Is.EqualTo(3), "Morris, Shanoa and Leo (U.VAN-T25)");
             var ppu = _host.Settings.Grid.PixelsPerUnit;
             for (var i = 0; i < views.Length; i++)
             {
@@ -106,6 +106,39 @@ namespace Unity.ProjectVania.Tests
         }
 
         [Test]
+        public void ShanoaAndLeoDrawTheirOwnSheetsAndLeosJumpShowsHisRunStripsCrouchThenStride()
+        {
+            var views = _host.GetComponentsInChildren<CharacterView>();
+            Assert.That(views.Select(v => v.Animator.Sheet.Sheet), Is.EqualTo(new[] { "morris", "shanoa", "leo" }));
+            Step(120);
+
+            // ] ] drives Leo; he jumps: the borrowed jump clip cuts run frame 0, then run frame 2.
+            _host.World.Submit(new CycleCharacter(PlayerId.One, 1));
+            _host.World.Submit(new CycleCharacter(PlayerId.One, 1));
+            Step(1);
+            _host.World.Submit(new JumpCharacter(PlayerId.One));
+            Step(1);
+            var leo = views[2];
+            leo.Present(0f);
+            Assert.That(leo.Animator.Clip.Name, Is.EqualTo(CharacterAnimator.Jump));
+            Assert.That(leo.Renderer.sprite.texture.name, Is.EqualTo("run"));
+            Assert.That(leo.Renderer.sprite.rect.x, Is.EqualTo(0f));
+            leo.Present(0.11f);
+            Assert.That(leo.Renderer.sprite.rect.x, Is.EqualTo(128f));
+
+            // [ steps back to Shanoa, who kneels with her own (borrowed) kneel frame.
+            _host.World.Submit(new CycleCharacter(PlayerId.One, -1));
+            Step(1);
+            Assert.That(_host.World.DrivenIndex(PlayerId.One), Is.EqualTo(1));
+            _host.World.Submit(new KneelCharacter(PlayerId.One));
+            Step(1);
+            var shanoa = views[1];
+            shanoa.Present(0f);
+            Assert.That(shanoa.Animator.Clip.Name, Is.EqualTo(CharacterAnimator.Kneel));
+            Assert.That(shanoa.Renderer.sprite.rect.x, Is.EqualTo(4 * 64f));
+        }
+
+        [Test]
         public void EveryNameIsWrittenRedThenYellowOverItsCharacter()
         {
             var tags = _host.GetComponentInChildren<NameTags>();
@@ -119,7 +152,7 @@ namespace Unity.ProjectVania.Tests
                 var red = tags.Labels[i * 2];
                 var yellow = tags.Labels[i * 2 + 1];
                 Assert.That(characters[i].Name, Is.Not.Empty);
-                Assert.That(_host.Settings.Names.Male, Does.Contain(characters[i].Name));
+                Assert.That(_host.Settings.Names.For(characters[i].Definition.Gender), Does.Contain(characters[i].Name));
                 Assert.That(red.text, Is.EqualTo(characters[i].Name));
                 Assert.That(yellow.text, Is.EqualTo(characters[i].Name));
                 Assert.That(red.style.color.value, Is.EqualTo(new Color(1f, 0f, 0f, 1f)));

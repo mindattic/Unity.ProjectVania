@@ -12,6 +12,18 @@
     "wallColumns": [20, 40],
     "tileBounds": [16, 0, 16, 16]
   },
+  "structures": {
+    "_about": "Owner decision 2026-10-23 (U.VAN-T25): block structures between the bridge's two walls (columns 21-39 are open) for Leo, who cannot wall slide, to climb and jump across; every character can use them. Each block is a rectangle of Hard cells, from its top-left cell to its bottom-right cell inclusive, [column, row]; the floor is row 30 (its top at y 480). A stair of a 3-high and a 6-high block against the right wall, then two-cell ledges each 3 rows higher, zigzagging left and back right across one- to three-column gaps. Columns 28, 31 and 34 (the spawn and reset x 450, 500, 550) stay clear, so every character still falls straight to the floor; columns 21-26 stay clear, so the left wall is the original's for wall slides and wall jumps; and rows 27-29 are clear left of the stair, so a 3-cell character walks the floor unhindered.",
+    "tileBounds": [16, 0, 16, 16],
+    "blocks": [
+      { "name": "low step", "from": [35, 27], "to": [36, 29] },
+      { "name": "high step", "from": [37, 24], "to": [39, 29] },
+      { "name": "ledge 1", "from": [32, 21], "to": [33, 21] },
+      { "name": "ledge 2", "from": [29, 18], "to": [30, 18] },
+      { "name": "ledge 3", "from": [32, 15], "to": [33, 15] },
+      { "name": "ledge 4", "from": [35, 12], "to": [37, 12] }
+    ]
+  },
   "units": {
     "_about": "The one place the original's pixels and frames meet the Runtime's units (BIBLE: one grid cell is one unit; the simulation steps at 60 Hz).",
     "pixelsPerUnit": 16,

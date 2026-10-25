@@ -1,6 +1,8 @@
 {
-  "_source": "CharacterSheet and UnitSize (RECONSTRUCTION 4.1, 4.8). Owner decision 2026-10-23: Shanoa and Leo are playable as well as Morris (built by U.VAN-T25); in the original only Morris was, the others by editing a field. A move set lists the actions a character can perform.",
+  "_source": "CharacterSheet and UnitSize (RECONSTRUCTION 4.1, 4.8). Owner decision 2026-10-23: Shanoa and Leo are playable as well as Morris (built by U.VAN-T25); in the original only Morris was, the others by editing a field. A move set lists the actions a character can perform; every character stands, runs and falls.",
   "defaultCharacter": "Morris",
+  "_roster": "Who is spawned, in order, one at each of player.json's spawn positions; [ and ] (L1 / R1) cycle through them in this order. The original spawned two Morrises (U.VAN-T25).",
+  "roster": ["Morris", "Shanoa", "Leo"],
   "nameTag": {
     "_about": "SceneManager.DrawText (RECONSTRUCTION 6, item 4): every character's name written twice in Arial 10, centred on its x and Top-aligned, red at (X - 1, Y - 100) and then yellow at (X, Y). TextWriter's Top alignment lifts the text by its measured height * fontSize (10) * 0.4; Arial 10 measures 16 px high, so 64 px: the yellow name sits at the top of the 64 px frame and the red one 100 px above it. Drawn over every character, after all of them.",
     "font": "Arial",
@@ -27,7 +29,7 @@
       "unitSize": [1, 3],
       "playable": true,
       "gender": "Female",
-      "_about": "The sheet has only idle and run, so U.VAN-T25 needs art or stand-ins for the rest of the move set.",
+      "_about": "Morris's full move set. The original ships only her idle and run strips, so the other five borrow frames of her run strip (animations.json, U.VAN-T25) until real art is dropped in.",
       "moveSet": ["Standing", "Running", "Kneeling", "Sliding", "Jumping", "WallSliding", "Falling"]
     },
     {
@@ -36,8 +38,8 @@
       "unitSize": [1, 2],
       "playable": true,
       "gender": "Male",
-      "_about": "The sheet has only idle and run; see Shanoa.",
-      "moveSet": ["Standing", "Running", "Kneeling", "Sliding", "Jumping", "WallSliding", "Falling"]
+      "_about": "An FFVI field sprite with idle and run strips only: he stands, runs, jumps and falls (the jump and fall borrow his run strip's frames), and never kneels, slides or wall slides, so grid.json's structures are built for him to climb (U.VAN-T25).",
+      "moveSet": ["Standing", "Running", "Jumping", "Falling"]
     }
   ]
 }

@@ -79,6 +79,13 @@ namespace Unity.ProjectVania.Core.Characters
         /// <summary>Which character this is (its sheet, gender and size), or null for a bare physics body.</summary>
         public Character Definition { get; }
 
+        /// <summary>
+        /// Whether the character's move set (characters.json, U.VAN-T25) has <paramref name="action"/>; a bare physics body
+        /// has every move. Morris and Shanoa have them all; Leo stands, runs, jumps and falls, and never kneels, slides
+        /// or wall slides.
+        /// </summary>
+        public bool Can(ActionKind action) => Definition == null || Definition.Can(action);
+
         /// <summary>The random name drawn over the character (<c>g.RandomName</c>), or null if it was given none.</summary>
         public string Name { get; }
 
@@ -175,10 +182,12 @@ namespace Unity.ProjectVania.Core.Characters
 
             if (Movement == 0)
             {
+                if (!Can(ActionKind.Kneeling)) return;
                 SetAction(ActionKind.Kneeling);
             }
             else if (_velocity.Y != _t.MaxFallSpeed)
             {
+                if (!Can(ActionKind.Sliding)) return;
                 SetAction(ActionKind.Sliding);
             }
 
@@ -192,13 +201,13 @@ namespace Unity.ProjectVania.Core.Characters
         /// </summary>
         public void Jump()
         {
-            if (IsJumping || Action == ActionKind.Jumping || JumpTime != 0f) return;
+            if (IsJumping || Action == ActionKind.Jumping || JumpTime != 0f || !Can(ActionKind.Jumping)) return;
 
             if (_t.Ability.Jump) IsJumping = true;
             _wasJumping = false;
             if (!_t.Ability.WallJump && Terrain == TerrainState.OnWall) IsJumping = false;
 
-            if (Action == ActionKind.Kneeling)
+            if (Action == ActionKind.Kneeling && Can(ActionKind.Sliding))
             {
                 _velocity.X = Facing * _t.SlideLaunchAcceleration * _elapsed;
                 IsJumping = false;
@@ -286,7 +295,9 @@ namespace Unity.ProjectVania.Core.Characters
                     break;
 
                 case TerrainState.InAir:
-                    if (WallContact != 0 && Movement != 0)
+                    // A character without the wall slide in its move set (Leo) goes on to the floor tests instead, so
+                    // landing while pressed against a wall still stands it up.
+                    if (WallContact != 0 && Movement != 0 && Can(ActionKind.WallSliding))
                     {
                         WallSlide();
                     }
@@ -427,7 +438,7 @@ namespace Unity.ProjectVania.Core.Characters
         /// <summary><c>Initiate_WallSlide</c>: only while holding a direction.</summary>
         void WallSlide()
         {
-            if (Action == ActionKind.WallSliding || !_t.Ability.WallSlide || Movement == 0) return;
+            if (Action == ActionKind.WallSliding || !_t.Ability.WallSlide || Movement == 0 || !Can(ActionKind.WallSliding)) return;
             IsJumping = false;
             JumpTime = 0f;
             SetAction(ActionKind.WallSliding);

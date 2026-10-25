@@ -40,24 +40,27 @@ namespace Unity.ProjectVania
                 return cached;
             }
 
-            var path = PathOf(sheet, clip.Name);
+            // A borrowed clip (U.VAN-T25) cuts its frames from another strip of the sheet, at the frames it lists.
+            var path = PathOf(sheet, clip.Strip);
             var texture = Resources.Load<Texture2D>(path);
             Sprite[] frames = null;
             var size = _animations.FrameSize;
+            var needed = 0;
+            for (var i = 0; i < clip.Frames; i++) needed = Mathf.Max(needed, clip.SourceFrame(i) + 1);
             if (texture == null)
             {
                 Debug.LogError($"[ProjectVania] The character strip {path} is missing.");
             }
-            else if (texture.height != size || texture.width < clip.Frames * size)
+            else if (texture.height != size || texture.width < needed * size)
             {
-                Debug.LogError($"[ProjectVania] {path} is {texture.width} x {texture.height}; animations.json expects {clip.Frames} frames of {size} x {size}.");
+                Debug.LogError($"[ProjectVania] {path} is {texture.width} x {texture.height}; animations.json expects {needed} frames of {size} x {size}.");
             }
             else
             {
                 frames = new Sprite[clip.Frames];
                 for (var i = 0; i < clip.Frames; i++)
                 {
-                    var sprite = Sprite.Create(texture, new Rect(i * size, 0, size, size), new Vector2(0.5f, 0f), _pixelsPerUnit, 0, SpriteMeshType.FullRect);
+                    var sprite = Sprite.Create(texture, new Rect(clip.SourceFrame(i) * size, 0, size, size), new Vector2(0.5f, 0f), _pixelsPerUnit, 0, SpriteMeshType.FullRect);
                     sprite.name = $"{sheet}_{clip.Name}_{i}";
                     frames[i] = sprite;
                 }

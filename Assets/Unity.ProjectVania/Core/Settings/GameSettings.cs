@@ -158,13 +158,21 @@ namespace Unity.ProjectVania.Core.Settings
                     continue;
                 }
 
-                foreach (var required in new[] { "idle", "run" })
+                // Every move in the character's move set needs the strip its action plays (U.VAN-T25: a missing one used
+                // to fall back to idle, as the original's KeyNotFoundException crash was not carried over).
+                foreach (var move in character.MoveSet)
                 {
-                    if (sheet.Find(required) == null)
+                    var required = global::Unity.ProjectVania.Core.Characters.CharacterAnimator.ClipFor(move);
+                    if (required != null && sheet.Find(required) == null)
                     {
-                        errors.Add($"{AnimationsFile}: sheet '{sheet.Sheet}' has no '{required}' animation");
+                        errors.Add($"{AnimationsFile}: sheet '{sheet.Sheet}' has no '{required}' animation, which '{character.Name}''s {move} plays");
                     }
                 }
+            }
+
+            if (Characters.Roster.Count > Player.SpawnPositions.Count)
+            {
+                errors.Add($"{CharactersFile}: the roster has {Characters.Roster.Count} characters but {PlayerFile} has only {Player.SpawnPositions.Count} spawn positions");
             }
 
             foreach (var cue in new[] { Console.LongCue, Console.ShortCue, Menu.MoveCue, Menu.SelectCue, Menu.OpenCue, Menu.CloseCue })

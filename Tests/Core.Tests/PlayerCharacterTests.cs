@@ -23,7 +23,7 @@ namespace Unity.ProjectVania.Core.Tests
 
         static GameSettings Settings() => GameSettings.Load(new DirectorySettingsSource(GameSettingsTests.ShippedFolder));
 
-        /// <summary>The shipped world: the bridge level and two Morris characters at (500, 100) and (550, 100).</summary>
+        /// <summary>The shipped world: the bridge level and a Morris at each spawn position, (500, 100), (550, 100) and (450, 100).</summary>
         static GameWorld Bridge()
         {
             var s = Settings();
@@ -75,13 +75,14 @@ namespace Unity.ProjectVania.Core.Tests
         // ---- Spawning, falling and the terminal-speed landing ----
 
         [Test]
-        public void TwoCharactersSpawnFallingInTheAirAtTheSpawnPositions()
+        public void ACharacterSpawnsFallingInTheAirAtEachSpawnPosition()
         {
             var w = Bridge();
-            Assert.That(w.Characters.Count, Is.EqualTo(2));
+            Assert.That(w.Characters.Count, Is.EqualTo(3), "the original's two and Leo's (U.VAN-T25)");
             Assert.That(w.Characters[0].Position.X, Is.EqualTo(500f));
             Assert.That(w.Characters[0].Position.Y, Is.EqualTo(100f));
             Assert.That(w.Characters[1].Position.X, Is.EqualTo(550f));
+            Assert.That(w.Characters[2].Position.X, Is.EqualTo(450f));
             foreach (var c in w.Characters)
             {
                 Assert.That(c.Action, Is.EqualTo(ActionKind.Falling));

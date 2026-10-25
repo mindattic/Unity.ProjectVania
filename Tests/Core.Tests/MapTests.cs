@@ -41,27 +41,51 @@ namespace Unity.ProjectVania.Core.Tests
             Assert.That(map.Height, Is.EqualTo(1200));
         }
 
+        // U.VAN-T25's block structures (grid.json structures), [column, row] rectangles, both corners included.
+        static readonly (int X0, int Y0, int X1, int Y1)[] Blocks =
+        {
+            (35, 27, 36, 29), (37, 24, 39, 29), (32, 21, 33, 21), (29, 18, 30, 18), (32, 15, 33, 15), (35, 12, 37, 12),
+        };
+
+        static bool InBlock(int x, int y) => Blocks.Any(b => x >= b.X0 && x <= b.X1 && y >= b.Y0 && y <= b.Y1);
+
         [Test]
-        public void Bridge_IsAFullFloorOnRow30AndFullHeightWallsOnColumns20And40()
+        public void Bridge_IsAFullFloorOnRow30AndFullHeightWallsOnColumns20And40_PlusTheBlockStructures()
         {
             var map = Bridge();
             for (int y = 0; y < map.Rows; y++)
             {
                 for (int x = 0; x < map.Columns; x++)
                 {
-                    bool expected = y == 30 || x == 20 || x == 40;
+                    bool expected = y == 30 || x == 20 || x == 40 || InBlock(x, y);
                     Assert.That(map[x, y].State, Is.EqualTo(expected ? CellState.Hard : CellState.Empty), $"[{x}, {y}]");
                 }
             }
         }
 
         [Test]
-        public void Bridge_Has266HardCellsAndNoSoftOnes()
+        public void Bridge_Has266HardCellsPlusThe33OfTheStructuresAndNoSoftOnes()
         {
             var map = Bridge();
             var states = Enumerable.Range(0, map.Columns).SelectMany(x => Enumerable.Range(0, map.Rows).Select(y => map[x, y].State)).ToList();
-            Assert.That(states.Count(s => s == CellState.Hard), Is.EqualTo(118 + 75 + 75 - 2));
+            Assert.That(states.Count(s => s == CellState.Hard), Is.EqualTo(118 + 75 + 75 - 2 + 33));
             Assert.That(states.Count(s => s == CellState.Soft), Is.Zero);
+        }
+
+        [Test]
+        public void TheStructuresLeaveTheSpawnColumnsAndTheLeftWallClear()
+        {
+            var map = Bridge();
+            for (int y = 0; y < 30; y++)
+            {
+                foreach (var x in new[] { 21, 22, 23, 24, 25, 26, 28, 31, 34 })
+                {
+                    Assert.That(map[x, y].State, Is.EqualTo(CellState.Empty), $"[{x}, {y}]");
+                }
+            }
+
+            // A structure cell looks like the bridge's.
+            Assert.That(map[35, 27], Is.EqualTo(map[20, 0]));
         }
 
         [Test]

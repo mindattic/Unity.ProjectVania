@@ -1,5 +1,5 @@
 {
-  "_source": "The animation table (RECONSTRUCTION 4.8): per sheet, each strip's PNG width (frameSize high), frame count, seconds per frame and whether it loops. Frame count is width / frameSize, truncated (Leo's run is 257 wide: 4 frames).",
+  "_source": "The animation table (RECONSTRUCTION 4.8): per sheet, each strip's PNG width (frameSize high), frame count, seconds per frame and whether it loops. Frame count is width / frameSize, truncated (Leo's run is 257 wide: 4 frames). A strip the original lacks borrows frames of one the sheet has: { name, strip, frameIndices, frameTime, loop } (U.VAN-T25).",
   "frameSize": 64,
   "sheets": [
     {
@@ -18,14 +18,21 @@
       "sheet": "shanoa",
       "animations": [
         { "name": "idle", "width": 640, "frames": 10, "frameTime": 0.1, "loop": true },
-        { "name": "run", "width": 640, "frames": 10, "frameTime": 0.1, "loop": true }
+        { "name": "run", "width": 640, "frames": 10, "frameTime": 0.1, "loop": true },
+        { "_about": "U.VAN-T25 stand-ins: the original has no other Shanoa art, so these borrow run frames (2-3 tucked and rising, 3 hair streaming up, 9 upright, 4 the lowest crouch, 5 the low lunge), with Morris's frame times. Replace each with { name, width, frames, ... } once a real strip is in Resources/Characters/shanoa.", "name": "jump", "strip": "run", "frameIndices": [2, 3], "frameTime": 0.2, "loop": false },
+        { "name": "fall", "strip": "run", "frameIndices": [3], "frameTime": 1.0, "loop": true },
+        { "name": "wallslide", "strip": "run", "frameIndices": [9], "frameTime": 0.07, "loop": true },
+        { "name": "kneel", "strip": "run", "frameIndices": [4], "frameTime": 0.07, "loop": false },
+        { "name": "slide", "strip": "run", "frameIndices": [5], "frameTime": 0.07, "loop": false }
       ]
     },
     {
       "sheet": "leo",
       "animations": [
         { "name": "idle", "width": 256, "frames": 4, "frameTime": 0.1, "loop": true },
-        { "name": "run", "width": 257, "frames": 4, "frameTime": 0.1, "loop": true }
+        { "name": "run", "width": 257, "frames": 4, "frameTime": 0.1, "loop": true },
+        { "_about": "U.VAN-T25: Leo is an FFVI field sprite with no jump pose. His jump is the run strip's crouch (frame 0) then its stride (frame 2), the same poses as cells (0, 3) and (2, 3) of the original's SpriteSheets/leo.png, and his fall holds the stride.", "name": "jump", "strip": "run", "frameIndices": [0, 2], "frameTime": 0.1, "loop": false },
+        { "name": "fall", "strip": "run", "frameIndices": [2], "frameTime": 1.0, "loop": true }
       ]
     }
   ]

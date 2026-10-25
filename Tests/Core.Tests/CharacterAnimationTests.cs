@@ -42,10 +42,46 @@ namespace Unity.ProjectVania.Core.Tests
             };
             Assert.That(morris.Animations.Select(a => (a.Name, a.Frames, a.FrameTime, a.Loop)), Is.EqualTo(expected));
 
-            Assert.That(Sheet("shanoa").Animations.Select(a => (a.Name, a.Frames, a.FrameTime, a.Loop)),
+            Assert.That(morris.Animations.All(a => !a.Borrowed && a.Strip == a.Name));
+
+            // The original's own Shanoa and Leo strips; U.VAN-T25's other clips borrow their run frames.
+            Assert.That(Sheet("shanoa").Animations.Where(a => !a.Borrowed).Select(a => (a.Name, a.Frames, a.FrameTime, a.Loop)),
                 Is.EqualTo(new[] { ("idle", 10, 0.1f, true), ("run", 10, 0.1f, true) }));
-            Assert.That(Sheet("leo").Animations.Select(a => (a.Name, a.Frames, a.FrameTime, a.Loop)),
+            Assert.That(Sheet("leo").Animations.Where(a => !a.Borrowed).Select(a => (a.Name, a.Frames, a.FrameTime, a.Loop)),
                 Is.EqualTo(new[] { ("idle", 4, 0.1f, true), ("run", 4, 0.1f, true) }));
+        }
+
+        [Test]
+        public void ShanoaAndLeoBorrowRunFramesForTheStripsTheOriginalLacks()
+        {
+            var shanoa = Sheet("shanoa");
+            Assert.That(shanoa.Animations.Where(a => a.Borrowed).Select(a => (a.Name, a.Strip, string.Join(",", a.FrameIndices), a.FrameTime, a.Loop)),
+                Is.EqualTo(new[]
+                {
+                    ("jump", "run", "2,3", 0.2f, false), ("fall", "run", "3", 1.0f, true), ("wallslide", "run", "9", 0.07f, true),
+                    ("kneel", "run", "4", 0.07f, false), ("slide", "run", "5", 0.07f, false),
+                }));
+            var leo = Sheet("leo");
+            Assert.That(leo.Animations.Where(a => a.Borrowed).Select(a => (a.Name, a.Strip, string.Join(",", a.FrameIndices), a.FrameTime, a.Loop)),
+                Is.EqualTo(new[] { ("jump", "run", "0,2", 0.1f, false), ("fall", "run", "2", 1.0f, true) }));
+
+            // A borrowed clip plays its own frame count; its frames name the strip's.
+            var animator = new CharacterAnimator(leo);
+            animator.Play(leo.Find("jump"));
+            animator.Advance(0.5f);
+            Assert.That(animator.Frame, Is.EqualTo(1), "a one-shot holds its last frame");
+            Assert.That(animator.Clip.SourceFrame(animator.Frame), Is.EqualTo(2));
+        }
+
+        [Test]
+        public void ABorrowedClipMustNameAStripOfItsSheetAndFramesItHas()
+        {
+            Assert.That(GameSettingsTests.LoadFails(GameSettingsTests.Patched(GameSettings.AnimationsFile,
+                t => t.Replace("\"strip\": \"run\", \"frameIndices\": [0, 2]", "\"strip\": \"run\", \"frameIndices\": [0, 4]"))).Errors.Single(),
+                Does.Contain("borrows frame 4 of 'run', which has 4"));
+            Assert.That(GameSettingsTests.LoadFails(GameSettingsTests.Patched(GameSettings.AnimationsFile,
+                t => t.Replace("\"name\": \"fall\", \"strip\": \"run\", \"frameIndices\": [2]", "\"name\": \"fall\", \"strip\": \"jump\", \"frameIndices\": [1]"))).Errors.Single(),
+                Does.Contain("not a strip of its own"));
         }
 
         [Test]
@@ -153,16 +189,21 @@ namespace Unity.ProjectVania.Core.Tests
         [Test]
         public void ASheetWithoutTheStripPlaysIdleInsteadOfCrashing()
         {
+            // Leo's sheet has no kneel strip (his move set has none, U.VAN-T25); a Morris kneeling drawn from it plays idle.
             var w = Shipped();
-            var shanoa = new CharacterAnimator(Sheet("shanoa"));
-            shanoa.Select(w.Characters[0]);
+            var leo = new CharacterAnimator(Sheet("leo"));
+            leo.Select(w.Characters[0]);
             Assert.That(w.Characters[0].Action, Is.EqualTo(ActionKind.Falling));
-            Assert.That(shanoa.Clip.Name, Is.EqualTo("idle"));
+            Assert.That(leo.Clip.Name, Is.EqualTo("fall"));
+
+            AdvanceUntil(w, () => w.Characters[0].Action == ActionKind.Kneeling);
+            leo.Select(w.Characters[0]);
+            Assert.That(leo.Clip.Name, Is.EqualTo("idle"));
 
             w.Submit(new MoveCharacter(P1, 1));
             AdvanceUntil(w, () => w.Characters[0].Action == ActionKind.Running, keepMoving: true);
-            shanoa.Select(w.Characters[0]);
-            Assert.That(shanoa.Clip.Name, Is.EqualTo("run"));
+            leo.Select(w.Characters[0]);
+            Assert.That(leo.Clip.Name, Is.EqualTo("run"));
         }
 
         // ---- the draw (4.8) ----
@@ -227,12 +268,18 @@ namespace Unity.ProjectVania.Core.Tests
         {
             var s = Settings();
             var w = Shipped(seed: 7);
-            Assert.That(w.Characters, Has.Count.EqualTo(2));
+            Assert.That(w.Characters, Has.Count.EqualTo(3));
             foreach (var c in w.Characters)
             {
                 Assert.That(c.Definition.Name, Is.EqualTo("Morris"));
                 Assert.That(s.Names.Male, Does.Contain(c.Name));
             }
+
+            // The shipped roster (U.VAN-T25): Shanoa's name comes from the female table.
+            var roster = new GameWorld(Map.FromSettings(s.Grid), s.Player, s.Characters.Roster, s.Names, new Random(7));
+            Assert.That(s.Names.Male, Does.Contain(roster.Characters[0].Name));
+            Assert.That(s.Names.Female, Does.Contain(roster.Characters[1].Name));
+            Assert.That(s.Names.Male, Does.Contain(roster.Characters[2].Name));
         }
 
         [Test]
@@ -281,12 +328,16 @@ namespace Unity.ProjectVania.Core.Tests
 
             w.Submit(new CycleCharacter(P1, 1));
             w.Advance(Frame);
+            Assert.That(w.DrivenIndex(P1), Is.EqualTo(2));
+
+            w.Submit(new CycleCharacter(P1, 1));
+            w.Advance(Frame);
             Assert.That(w.DrivenIndex(P1), Is.EqualTo(0), "right from the last wraps to the first");
 
             w.Submit(new CycleCharacter(P1, -1));
             w.Advance(Frame);
-            Assert.That(w.DrivenIndex(P1), Is.EqualTo(1), "left from the first wraps to the last");
-            Assert.That(w.Driven(P1), Is.SameAs(w.Characters[1]));
+            Assert.That(w.DrivenIndex(P1), Is.EqualTo(2), "left from the first wraps to the last");
+            Assert.That(w.Driven(P1), Is.SameAs(w.Characters[2]));
         }
 
         [Test]
@@ -335,6 +386,9 @@ namespace Unity.ProjectVania.Core.Tests
             var w = Shipped();
             var p2 = new PlayerId(1);
             Assert.That(w.DrivenIndex(p2), Is.EqualTo(1));
+            w.Submit(new CycleCharacter(p2, 1));
+            w.Advance(Frame);
+            Assert.That(w.DrivenIndex(p2), Is.EqualTo(2));
             w.Submit(new CycleCharacter(p2, 1));
             w.Advance(Frame);
             Assert.That(w.DrivenIndex(p2), Is.EqualTo(0));
