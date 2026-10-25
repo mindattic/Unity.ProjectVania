@@ -230,9 +230,9 @@ namespace Unity.ProjectVania.Core.Settings
             // content.json's segment atlas is the image segments.json's definitions were cut from.
             var atlasImage = Content.SegmentAtlas.Asset + ".png";
             var sourceImages = new List<string>();
-            foreach (var source in Segments.Sources)
+            foreach (var segmentSource in Segments.Sources)
             {
-                sourceImages.Add(source.Image);
+                sourceImages.Add(segmentSource.Image);
             }
 
             if (!sourceImages.Contains(atlasImage))

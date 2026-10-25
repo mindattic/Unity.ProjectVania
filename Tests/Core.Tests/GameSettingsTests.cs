@@ -237,6 +237,8 @@ namespace Unity.ProjectVania.Core.Tests
             Assert.That(content.Sun.Periods.Single(p => p.Name == "Night").Colour, Is.EqualTo(new Rgba(128, 0, 255, 64)));
             Assert.That(content.ActionCross.Slots.Count, Is.EqualTo(4));
             Assert.That(content.ActionCross.Slots.Single(s => s.Position == ActionCrossPosition.Top).Icon, Is.EqualTo("icon_selectsquad"));
+            Assert.That(content.ActionCross.BlankIcon, Is.EqualTo("blank"));
+            Assert.That(content.ActionCross.Slots.Where(s => s.Position != ActionCrossPosition.Top).Select(s => s.Icon), Is.All.EqualTo("blank"));
             Assert.That(content.Portraits.Used, Is.EqualTo("portrait_1"));
             Assert.That(content.Portraits.Unused.Count, Is.EqualTo(6));
             Assert.That(content.Icons.ActionButtons.Count, Is.EqualTo(4));
@@ -367,6 +369,13 @@ namespace Unity.ProjectVania.Core.Tests
         {
             var e = LoadFails(Patched(GameSettings.ContentFile, t => t.Replace("\"drawn\": \"area_1\",", "\"drawn\": \"nope\",")));
             Assert.That(e.Errors.Single(), Does.Contain("draws 'area_1'").And.Contain("nope"));
+        }
+
+        [Test]
+        public void ActionCrossSlotIcon_MustBeAnInventoriedIconOrBlank()
+        {
+            var e = LoadFails(Patched(GameSettings.ContentFile, t => t.Replace("{ \"position\": \"Top\", \"icon\": \"icon_selectsquad\" }", "{ \"position\": \"Top\", \"icon\": \"icon_nope\" }")));
+            Assert.That(e.Errors.Single(), Does.Contain("'Top'").And.Contain("icon_nope"));
         }
 
         [Test]

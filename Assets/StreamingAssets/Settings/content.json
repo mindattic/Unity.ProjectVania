@@ -22,11 +22,12 @@
     ]
   },
   "actionCross": {
-    "_about": "Gui\\ActionCross.cs (RECONSTRUCTION 9.1, defect 12): a 145x145 glass and frame with four 48x48 icon slots; its construction, update and draw are commented out in GuiManager, and SetActionIcons is an empty shell, so it never exists at runtime. Kept inert as data (BIBLE defect 12).",
+    "_about": "Gui\\ActionCross.cs (RECONSTRUCTION 9.1, defect 12): a 145x145 glass and frame with four 48x48 icon slots; its construction, update and draw are commented out in GuiManager, and SetActionIcons is an empty shell, so it never exists at runtime. Kept inert as data (BIBLE defect 12). blankIcon is Content\\Textures\\blank.png (RECONSTRUCTION 13), a 1x1 the original drew the three empty slots with.",
     "glass": "action_cross_glass",
     "frame": "action_cross_frame",
     "size": [145, 145],
     "slotSize": [48, 48],
+    "blankIcon": "blank",
     "slots": [
       { "position": "Top", "icon": "icon_selectsquad" },
       { "position": "Left", "icon": "blank" },
@@ -40,7 +41,7 @@
     "unused": ["portrait_archer", "portrait_paladin", "portrait_priest", "portrait_rogue", "portrait_soldier", "portrait_wizard"]
   },
   "icons": {
-    "_about": "Gui\\Icons (RECONSTRUCTION 13, defect 14): four action buttons and twenty-nine skill icons, all loaded by the original and none drawn (the ActionCross they belong to never exists). The original's icon_poisondart loaded icon_parry.png's file (a typo) and icon_consecrate.png was never loaded at all; fixed in this data, each name is its own file.",
+    "_about": "Gui\\Icons (RECONSTRUCTION 13, defect 14): four action buttons and twenty-nine skill icons, all loaded by the original and none drawn (the ActionCross they belong to never exists). The original's icon_poisondart loaded icon_parry.png's file (a typo) and icon_consecrate.png was never loaded at all; fixed in this data, each name is its own file. icon_regen.png and icon_pray.png are the original's own files and are pixel-for-pixel identical (not a copy mistake like poisondart's); the original's art simply reused one picture for both.",
     "actionButtons": ["action_A", "action_B", "action_X", "action_Y"],
     "skills": [
       "assassinate", "attack", "aura", "battlecry", "bow", "consecrate", "crossbow", "falcon", "fireball",
@@ -76,7 +77,7 @@
     ]
   },
   "unwiredCharacterArt": {
-    "_about": "Characters\\Playable\\Richter (RECONSTRUCTION 13): idle and run strips, never loaded by the original (unlike Shanoa and Leo, whose sheets were loaded though unused; U.VAN-T25 later made Shanoa and Leo playable here). Richter has no character entry in characters.json and stays unwired.",
+    "_about": "Characters\\Playable\\Richter (RECONSTRUCTION 13): idle and run strips, never loaded by the original (unlike Shanoa and Leo, whose sheets the original loaded though unused; this rebuild already made Shanoa and Leo playable in characters.json, owner decision U.VAN-T25). Richter has no character entry in characters.json and stays unwired.",
     "sheet": "richter",
     "size": [640, 64]
   }

@@ -54,6 +54,21 @@ namespace Unity.ProjectVania.Core.Settings
             r.Check(data.Selectors.Assets.Count == 5, "selectors", "must list the original's five selector sizes");
             r.Check(data.Banners.Assets.Count == 15, "banners", "must list the original's fifteen banners");
             r.Check(data.SpriteSheets.Assets.Count == 16, "spriteSheets", "must list the original's sixteen character sheets");
+
+            // Every ActionCross slot must name either the blank texture or one of the inventoried icons (the skills
+            // list holds bare names, e.g. "selectsquad", matched here against the slot's own "icon_selectsquad").
+            var knownIcons = new HashSet<string>(data.Icons.ActionButtons);
+            foreach (var skill in data.Icons.Skills)
+            {
+                knownIcons.Add("icon_" + skill);
+            }
+
+            knownIcons.Add(data.ActionCross.BlankIcon);
+            foreach (var slot in data.ActionCross.Slots)
+            {
+                r.Check(knownIcons.Contains(slot.Icon), "actionCross", $"slot '{slot.Position}' names icon '{slot.Icon}', which content.json does not list");
+            }
+
             return data;
         }
     }
@@ -135,6 +150,10 @@ namespace Unity.ProjectVania.Core.Settings
         public string Frame { get; private set; }
         public Pair Size { get; private set; }
         public Pair SlotSize { get; private set; }
+
+        /// <summary><c>Content\Textures\blank.png</c>, a 1x1 the original drew the cross's three empty slots with.</summary>
+        public string BlankIcon { get; private set; }
+
         public IReadOnlyList<ActionCrossSlot> Slots { get; private set; }
 
         internal static ActionCrossData Read(SettingsReader r)
@@ -145,6 +164,7 @@ namespace Unity.ProjectVania.Core.Settings
                 Frame = r.Text("frame"),
                 Size = r.Pair("size", 1f),
                 SlotSize = r.Pair("slotSize", 1f),
+                BlankIcon = r.Text("blankIcon"),
                 Slots = r.Each("slots", ActionCrossSlot.Read),
             };
             r.Check(data.Slots.Count == 4, "slots", "must list all four of the cross's slots");
