@@ -13,8 +13,8 @@ namespace Unity.ProjectVania.Core.Tests
 {
     /// <summary>
     /// U.VAN-US-A18: one scripted run through the fully composed, engine-free world (the same roster, camera, menu,
-    /// console, HUD, audio table and editor <see cref="Unity.ProjectVania.GameHost.Initialize"/> builds for the real
-    /// game, not the single-system minimal worlds the other Core.Tests files use) that plays every state and mechanic
+    /// console, HUD, audio table and editor <c>GameHost.Initialize</c> builds for the real game, not the single-system
+    /// minimal worlds the other Core.Tests files use) that plays every state and mechanic
     /// RECONSTRUCTION records and the owner asked U.VAN-T21 to verify end to end: run, jump, kneel (and its release),
     /// slide, wall slide, wall jump (and its push-off), all four camera modes, the main menu, console commands, map
     /// editor painting and audio cues. Each phase is commented with the RECONSTRUCTION section and BIBLE decision it
@@ -157,7 +157,13 @@ namespace Unity.ProjectVania.Core.Tests
 
             Assert.That(c.Action, Is.EqualTo(ActionKind.WallSliding));
             Assert.That(c.Terrain, Is.EqualTo(TerrainState.OnWall));
-            Assert.That(c.Velocity.Y, Is.LessThanOrEqualTo(500f / 6f + 0.01f), "capped at 83.33 px/s, not the 500 px/s terminal fall");
+
+            // Held long enough to settle onto the cap (PlayerCharacterTests pins this at 30 frames): proves the slide is
+            // actually capped at 83.33 px/s, not just still accelerating and coincidentally under it.
+            for (var i = 0; i < 40 && c.Action == ActionKind.WallSliding; i++) Step(world, events, Left);
+            Assert.That(c.Action, Is.EqualTo(ActionKind.WallSliding));
+            Assert.That(c.Terrain, Is.EqualTo(TerrainState.OnWall));
+            Assert.That(c.Velocity.Y, Is.EqualTo(500f / 6f).Within(1e-2f), "capped at 83.33 px/s, not the 500 px/s terminal fall");
 
             var wallX0 = c.Position.X;
             Step(world, events, Left, Jump);
@@ -237,12 +243,16 @@ namespace Unity.ProjectVania.Core.Tests
             Assert.That(world.State, Is.EqualTo(GameState.MapEditor));
             Assert.That(world.Camera(P1).Mode, Is.EqualTo(CameraMode.Free), "M puts the camera in Free mode over an editor cursor (RECONSTRUCTION 8)");
 
+            var editor = world.Editor(P1);
+            Assert.That(editor, Is.Not.Null, "opening the editor puts the cursor on the driven character at once");
+            var before = editor.SelectedCell;
+            Assert.That(world.Map[before.X, before.Y].State, Is.Not.EqualTo(CellState.Hard), "the cell under the cursor starts out paintable, not already Hard");
+
             world.Submit(new SetEditorCursor(P1, EditorCursorMode.World));
             world.Submit(new PointEditor(P1, centreX, centreY, left: true, right: false));
             Advance(world, events);
-            var editor = world.Editor(P1);
-            Assert.That(editor, Is.Not.Null);
             var painted = editor.SelectedCell;
+            Assert.That(painted, Is.EqualTo(before), "the mouse never left the dead zone, so the same cell is still selected");
             Assert.That(world.Map[painted.X, painted.Y].State, Is.EqualTo(CellState.Hard), "left paints a Hard cell from the selected palette tile");
 
             Step(world, events, new ToggleMapEditor(P1));
