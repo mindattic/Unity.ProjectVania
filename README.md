@@ -53,6 +53,25 @@ Reconstruction written, implementation not yet started. The stories, in build or
 - Everything the original left unwired, kept as data
 - Asset parity sweep and the end-to-end scripted verification run
 
+### Muted launches
+
+`play.ps1` launches muted: it sets `MINDATTIC_CLI_MUTED=1` and passes `-muted`, so a CLI or agent starting
+the game never blasts audio. Pass `-Sound` to launch with audio, `-Build` to rebuild first (`.\unity.ps1
+build`), `-Wait` to wait for the player to exit. Either switch works on its own when you start
+`ProjectVania.exe` (or the editor) yourself:
+
+```
+$env:MINDATTIC_CLI_MUTED = '1'; .\Build\ProjectVania\ProjectVania.exe
+.\Build\ProjectVania\ProjectVania.exe -muted
+```
+
+The mute is the shared `com.mindattic.unity.shared` session mute: read before the first scene loads, it
+makes the player profile's settings report music and SFX muted for that run only, and `SessionAudio`
+silences the listener (the cue and song players follow audio.json and the console's `mute`, which still
+works underneath). The player's saved `settings.json` is never written, so the next normal launch has
+sound. The `-batchmode` runs in `unity.ps1` (compile, test, build, capture) are not playable launches and
+are unaffected.
+
 ## Original source
 
 `R:\Projects\_PRE_2022\_PRE_2021\_PRE_2020\_PRE_2017\ProjectVania` (the fuller copy; its `Engine`
