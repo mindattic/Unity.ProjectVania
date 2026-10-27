@@ -1,5 +1,6 @@
 using System;
 using Unity.ProjectVania.Core.Characters;
+using Unity.ProjectVania.Core.Commands;
 using Unity.ProjectVania.Core.Display;
 using Unity.ProjectVania.Core.Settings;
 using UnityEngine;
@@ -18,11 +19,35 @@ namespace Unity.ProjectVania
     {
         public const string RootName = "ProjectVania";
 
+        /// <summary>
+        /// The online scene (U.VAN-T31), second in the build after the local game's Main: it composes the game itself once a
+        /// session starts, so the bootstrap leaves it alone.
+        /// </summary>
+        public const string OnlineScene = "Online";
+
+        /// <summary>The launch argument that opens the online scene instead of local play (play.ps1 -Online).</summary>
+        public const string OnlineArgument = "-online";
+
         /// <summary>The composed game, or null before the bootstrap ran or after it stopped on bad settings.</summary>
         public static GameHost Current { get; private set; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        static void OnLoad() => Run(Startup.StreamingSource());
+        static void OnLoad()
+        {
+            // Local play is exactly as before; online play is its own scene, which composes the game per session.
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == OnlineScene)
+            {
+                return;
+            }
+
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), OnlineArgument) >= 0 && Application.CanStreamedLevelBeLoaded(OnlineScene))
+            {
+                UnityEngine.SceneManagement.SceneManager.LoadScene(OnlineScene);
+                return;
+            }
+
+            Run(Startup.StreamingSource());
+        }
 
         /// <summary>Loads the settings from <paramref name="source"/> and composes the game, or logs every error and stops.</summary>
         public static GameHost Run(ISettingsSource source)
@@ -41,8 +66,12 @@ namespace Unity.ProjectVania
             return Current;
         }
 
-        /// <summary>Builds the camera, host and UI for valid settings. Replaces a previous composition.</summary>
-        public static GameHost Compose(GameSettings settings)
+        /// <summary>
+        /// Builds the camera, host and UI for valid settings. Replaces a previous composition. Online (U.VAN-T31)
+        /// <paramref name="player"/> is this screen's seat (its camera, editor and controls) and <paramref name="seed"/> the
+        /// authority's, so every peer's world starts the same; local play passes neither.
+        /// </summary>
+        public static GameHost Compose(GameSettings settings, PlayerId? player = null, int? seed = null)
         {
             if (settings == null)
             {
@@ -57,7 +86,7 @@ namespace Unity.ProjectVania
 
             var root = new GameObject(RootName);
             var host = root.AddComponent<GameHost>();
-            host.Initialize(settings);
+            host.Initialize(settings, player, seed);
 
             // Letterbox bars are outside every camera's viewport rect, so nothing clears them on their own; this
             // camera draws nothing (cullingMask 0) and runs before the game camera (lower depth) only to paint
@@ -100,7 +129,20 @@ namespace Unity.ProjectVania
             ui.gameObject.AddComponent<ConsoleView>().Initialize(host.World, ui.rootVisualElement);
             // ... and last the debug readout and the message stack.
             ui.gameObject.AddComponent<HudTextView>().Initialize(host.World, host.Input.Player, ui.rootVisualElement);
+            Current = host;
             return host;
+        }
+
+        /// <summary>Removes the composed game, if any (an online session ended, U.VAN-T31).</summary>
+        public static void Dispose()
+        {
+            var existing = GameObject.Find(RootName);
+            if (existing != null)
+            {
+                Remove(existing);
+            }
+
+            Current = null;
         }
 
         /// <summary>The map under the characters: outline, layers, cells, then the editor's cursor (RECONSTRUCTION 5, 6).</summary>

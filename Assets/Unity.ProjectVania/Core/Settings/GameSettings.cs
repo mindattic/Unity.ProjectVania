@@ -29,11 +29,12 @@ namespace Unity.ProjectVania.Core.Settings
         public const string EditorFile = "editor.json";
         public const string EffectsFile = "effects.json";
         public const string ContentFile = "content.json";
+        public const string OnlineFile = "online.json";
 
         /// <summary>Every data file the registry reads.</summary>
         public static readonly string[] Files =
         {
-            PlayerFile, CharactersFile, AnimationsFile, GridFile, MenuFile, CameraFile, ConsoleFile, AudioFile, SegmentsFile, NamesFile, InputFile, HudFile, EditorFile, EffectsFile, ContentFile,
+            PlayerFile, CharactersFile, AnimationsFile, GridFile, MenuFile, CameraFile, ConsoleFile, AudioFile, SegmentsFile, NamesFile, InputFile, HudFile, EditorFile, EffectsFile, ContentFile, OnlineFile,
         };
 
         private GameSettings()
@@ -55,6 +56,9 @@ namespace Unity.ProjectVania.Core.Settings
         public EditorData Editor { get; private set; }
         public EffectData Effects { get; private set; }
         public ContentData Content { get; private set; }
+
+        /// <summary>The online session's figures (U.VAN-T31); local play never reads them.</summary>
+        public OnlineData Online { get; private set; }
 
         /// <summary>The original-to-Runtime unit mapping (grid.json units).</summary>
         public OriginalUnits Units { get; private set; }
@@ -89,6 +93,7 @@ namespace Unity.ProjectVania.Core.Settings
                 Editor = Read(source, EditorFile, errors, EditorData.Read),
                 Effects = Read(source, EffectsFile, errors, EffectData.Read),
                 Content = Read(source, ContentFile, errors, ContentData.Read),
+                Online = Read(source, OnlineFile, errors, OnlineData.Read),
             };
 
             if (errors.Count == 0)
@@ -210,6 +215,12 @@ namespace Unity.ProjectVania.Core.Settings
             }
 
             CheckInMap(errors, Player.ResetPosition, width, height, "the reset position");
+
+            // Online every seat starts on its own character, with that character's camera (U.VAN-T31).
+            if (Online.MaxPlayers > Characters.Roster.Count)
+            {
+                errors.Add($"{OnlineFile}: maxPlayers {Online.MaxPlayers} is more than the {Characters.Roster.Count} characters of {CharactersFile}'s roster");
+            }
 
             if (Hud.Screen.X != Grid.ReferenceScreen.X || Hud.Screen.Y != Grid.ReferenceScreen.Y)
             {

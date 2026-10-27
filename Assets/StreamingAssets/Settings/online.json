@@ -1,0 +1,8 @@
+{
+  "_source": "Not the original's (it had no online play): U.VAN-T31's online session on the shared Unity.Multiplayer kit, a lockstep of every seat's input frames ordered by the one authority (BIBLE, Online). Local play never reads it.",
+  "maxPlayers": 3,
+  "inputQueueLimit": 30,
+  "historyChunkSteps": 120,
+  "catchUpStepsPerFrame": 3600,
+  "silentBacklogSteps": 60
+}

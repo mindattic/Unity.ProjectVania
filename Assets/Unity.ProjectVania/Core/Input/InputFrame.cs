@@ -111,6 +111,69 @@ namespace Unity.ProjectVania.Core.Input
             WindowActive = true;
         }
 
+        /// <summary>
+        /// Writes every control's state (U.VAN-T31: an online seat's frame on the wire). The wheel keeps only its sign, the
+        /// one thing the router reads, so a frame read back routes exactly as the one written.
+        /// </summary>
+        public void WriteTo(System.IO.BinaryWriter writer)
+        {
+            var flags = (byte)((PadConnected ? 1 : 0) | (HasMouse ? 2 : 0) | (WindowActive ? 4 : 0));
+            writer.Write(flags);
+            for (var i = 0; i < _keys.Length; i++)
+            {
+                writer.Write(_keys[i]);
+            }
+
+            writer.Write(_buttons);
+            writer.Write((byte)_mouse);
+            writer.Write((sbyte)Math.Sign(Wheel));
+            if (HasMouse)
+            {
+                writer.Write(MouseX);
+                writer.Write(MouseY);
+            }
+        }
+
+        /// <summary>Replaces every control's state with one <see cref="WriteTo"/> wrote.</summary>
+        public void ReadFrom(System.IO.BinaryReader reader)
+        {
+            var flags = reader.ReadByte();
+            for (var i = 0; i < _keys.Length; i++)
+            {
+                _keys[i] = reader.ReadUInt64();
+            }
+
+            _buttons = reader.ReadUInt32();
+            _mouse = reader.ReadByte();
+            Wheel = reader.ReadSByte();
+            PadConnected = (flags & 1) != 0;
+            HasMouse = (flags & 2) != 0;
+            WindowActive = (flags & 4) != 0;
+            MouseX = HasMouse ? reader.ReadSingle() : 0f;
+            MouseY = HasMouse ? reader.ReadSingle() : 0f;
+        }
+
+        /// <summary>Whether every control reads the same as in <paramref name="other"/> (the wheel by its sign).</summary>
+        public bool SameAs(InputFrame other)
+        {
+            if (other == null)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < _keys.Length; i++)
+            {
+                if (_keys[i] != other._keys[i])
+                {
+                    return false;
+                }
+            }
+
+            return _buttons == other._buttons && _mouse == other._mouse && PadConnected == other.PadConnected
+                && Math.Sign(Wheel) == Math.Sign(other.Wheel) && HasMouse == other.HasMouse && WindowActive == other.WindowActive
+                && (!HasMouse || (MouseX.Equals(other.MouseX) && MouseY.Equals(other.MouseY)));
+        }
+
         public void CopyFrom(InputFrame other)
         {
             Array.Copy(other._keys, _keys, _keys.Length);

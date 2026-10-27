@@ -102,6 +102,15 @@ works underneath). The player's saved `settings.json` is never written, so the n
 sound. The `-batchmode` runs in `unity.ps1` (compile, test, build, capture) are not playable launches and
 are unaffected.
 
+### Online
+
+The game can be played online on the shared Unity.Multiplayer kit (BIBLE, **Online**). Local play is unchanged; the
+online scene is opened with `-online` (or `.\play.ps1 -Online`) and offers Host, Join by IP, Join by code and Play
+alone. Up to three players each drive their own character (Morris, Shanoa, Leo) in the host's one game, kept in step
+by a lockstep the host orders. `Assets/Scenes/Online.unity` is written in code by **MindAttic > ProjectVania > Rebuild
+Online Scene** (`Unity.ProjectVania.EditorTools.Online.OnlineSceneBuilder.BuildAll` in batch); `mp-host game smoke`
+runs a dedicated server with two bots.
+
 ## Original source
 
 `R:\Projects\_PRE_2022\_PRE_2021\_PRE_2020\_PRE_2017\ProjectVania` (the fuller copy; its `Engine`

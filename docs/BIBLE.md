@@ -56,6 +56,7 @@ rebuild's job is to be a faithful, clean, tested version of exactly that.
 | Everything unwired in the original, kept as data | §5.1, §9.1, §15 | U.VAN-US-A16 |
 | Asset parity sweep and live-asset diff test | §13 | U.VAN-US-A17 |
 | End-to-end scripted verification | all | U.VAN-US-A18 |
+| Online-ready on Unity.Multiplayer (lockstep, one authority, seats) | beyond the original | U.VAN-T31 |
 
 ## Decisions made (defaults; the owner may overrule any)
 
@@ -396,6 +397,28 @@ draws it here; it and the ActionCross are A16's inert data. `unity.ps1 capture` 
 start-up messages falling), `hud-quickbar-away.png` and `hud-fade-half.png`.
 
 Text is UI Toolkit in Arial 10 and Lucida Console 14 equivalents.
+
+**Online (U.VAN-T31, rebuild standard point 9).** The original had no online play and the local game is untouched by
+it: Main.unity still composes the one-driver game exactly as above. Online play is its own scene, `Assets/Scenes/Online.unity`
+(written in code by `OnlineSceneBuilder`, second in the build; `-online` / `play.ps1 -Online` opens it), on the shared
+Unity.Multiplayer kit: its NetworkManager, NetBootstrap and drop-in NetFrontEnd (Host, Join by IP, Join by code, the lobby,
+reconnect, plus `Play alone` back to local play). The kit's in-game Esc menu is off, because Esc is the game's own menu;
+its Quit and the console's `exit` end only the player who chose them (`QuitRequested` and `FullscreenToggled` now name
+their player, always player one in local play). **One authority, lockstep.** Core is deterministic and changes only
+through commands, so the session is a lockstep the authority orders rather than a stream of snapshots: when the host
+presses Start (or a dedicated server runs) the server composes the game from a seed it picks and serves it
+(`GameHost.Serve`, Core's `LockstepAuthority`). Before every step it takes one input frame per seat (the host's own from
+its keyboard and pad; a remote seat's the oldest it was sent, or its last held with the wheel at rest, so nothing is
+pressed twice), records them as a `StepRecord` and routes each seat's frame through `SeatRouter`, which is
+`PlayerInput`'s routing with the seat as the player id. A seat is a `VaniaNetPlayer` NetEntity (the Player Prefab)
+carrying the kit's seat index; seat n starts on character n with camera n and editor n, so online.json's `maxPlayers` is
+the roster's three (checked on load). Each client composes its own screen from the authority's seed as a replica
+(`GameHost.Follow`, Core's `LockstepReplica`): it sends its controls, one frame per fixed step, and runs only the steps the
+authority recorded (`VaniaWorldSync`, keyed `vania:world`, publishes them every frame), so its world is the authority's,
+step for step; `LockstepTests` proves a replica, and a late joiner replaying the history in any order, end on the same
+game. The history is kept encoded in online.json's chunks of steps, sent to a joining player and resent from any step a
+replica finds missing; a replica far behind plays none of the backlog's sounds. A song's end is the authority's (it
+travels in the record). `VaniaBot` is the kit's `[NetBotDriver]` (`mp-host game smoke`, `mp-host.json`).
 
 **Persistence.** None in the original and none added: the editor's changes are lost on exit. Adding a
 save is a new feature and needs the owner's say-so.

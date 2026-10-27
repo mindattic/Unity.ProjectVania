@@ -11,6 +11,8 @@
     Rebuild the player with `.\unity.ps1 build` before launching (the Editor must be closed on this project).
 .PARAMETER Sound
     Launch with audio (no MINDATTIC_CLI_MUTED, no -muted).
+.PARAMETER Online
+    Open the online scene (U.VAN-T31: the Unity.Multiplayer kit's Host / Join menus) instead of local play.
 .PARAMETER Wait
     Wait for the player to exit and return its exit code.
 #>
@@ -18,6 +20,7 @@ param(
     [switch]$Build,
     [switch]$Sound,
     [switch]$Wait,
+    [switch]$Online,
     [Parameter(ValueFromRemainingArguments = $true)][string[]]$PlayerArgs
 )
 
@@ -34,6 +37,7 @@ New-Item -ItemType Directory -Force (Split-Path $log) | Out-Null
 
 $arguments = @('-logFile', "`"$log`"")
 if (-not $Sound) { $arguments += '-muted' }
+if ($Online) { $arguments += '-online' }
 if ($PlayerArgs) { $arguments += $PlayerArgs }
 
 # The child inherits this process's environment; set the mute only around the launch.

@@ -11,10 +11,14 @@ namespace Unity.ProjectVania.Core.Commands
         public CueRequested(long tick, string cue) { Tick = tick; Cue = cue; }
     }
 
-    /// <summary>The menu's Quit was selected (<c>Game.Exit()</c>): presentation ends the program.</summary>
+    /// <summary>
+    /// The menu's Quit, or the console's <c>exit</c>, was chosen (<c>Game.Exit()</c>): presentation ends the program.
+    /// <see cref="Player"/> is who chose it: online (U.VAN-T31) only that player's program ends.
+    /// </summary>
     public readonly struct QuitRequested : IGameEvent
     {
         public long Tick { get; }
-        public QuitRequested(long tick) { Tick = tick; }
+        public PlayerId Player { get; }
+        public QuitRequested(long tick, PlayerId player) { Tick = tick; Player = player; }
     }
 }

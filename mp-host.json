@@ -1,0 +1,5 @@
+{
+  "name": "unity-projectvania",
+  "scene": "Assets/Scenes/Online.unity",
+  "bots": "A,B"
+}

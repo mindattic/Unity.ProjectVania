@@ -193,7 +193,8 @@ namespace Unity.ProjectVania.Tests
             var before = File.ReadAllText(RenderPipelineBuilder.PipelinePath);
             ProjectBuilder.Ensure();
             Assert.That(File.ReadAllText(RenderPipelineBuilder.PipelinePath), Is.EqualTo(before));
-            Assert.That(EditorBuildSettings.scenes.Length, Is.EqualTo(1));
+            // The local game first, then the online scene (U.VAN-T31).
+            Assert.That(EditorBuildSettings.scenes.Select(s => s.path), Is.EqualTo(ProjectBuilder.Scenes()));
             Assert.That(EditorBuildSettings.scenes[0].path, Is.EqualTo(ProjectBuilder.ScenePath));
         }
 

@@ -220,11 +220,15 @@ namespace Unity.ProjectVania.Core.Commands
         public AnnounceGamepad(PlayerId player) { Player = player; }
     }
 
-    /// <summary>The window mode should flip (presentation applies it).</summary>
+    /// <summary>
+    /// The window mode should flip (presentation applies it). <see cref="Player"/> is who asked: online (U.VAN-T31) only
+    /// that player's window flips; in local play it is always the one driver.
+    /// </summary>
     public readonly struct FullscreenToggled : IGameEvent
     {
         public long Tick { get; }
-        public FullscreenToggled(long tick) { Tick = tick; }
+        public PlayerId Player { get; }
+        public FullscreenToggled(long tick, PlayerId player) { Tick = tick; Player = player; }
     }
 
     /// <summary>The console was asked to slide (presentation plays its cue).</summary>

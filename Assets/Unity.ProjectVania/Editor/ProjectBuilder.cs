@@ -18,6 +18,9 @@ namespace Unity.ProjectVania.EditorTools
     public static class ProjectBuilder
     {
         public const string ScenePath = "Assets/Scenes/Main.unity";
+
+        /// <summary>The online scene (U.VAN-T31, written by OnlineSceneBuilder), second in the build after the local game.</summary>
+        public const string OnlineScenePath = "Assets/Scenes/Online.unity";
         public const string DefaultOutput = "Build/ProjectVania/ProjectVania.exe";
 
         [MenuItem("MindAttic/ProjectVania/Ensure Project")]
@@ -27,7 +30,10 @@ namespace Unity.ProjectVania.EditorTools
             EnsureScene();
         }
 
-        /// <summary>The empty bootstrap scene, created only if missing, and the only entry in the build settings.</summary>
+        /// <summary>
+        /// The empty bootstrap scene, created only if missing, first in the build settings, with the online scene after it
+        /// when it exists (U.VAN-T31), so a launch plays the local game.
+        /// </summary>
         public static void EnsureScene()
         {
             if (!File.Exists(ScenePath))
@@ -37,13 +43,22 @@ namespace Unity.ProjectVania.EditorTools
                 EditorSceneManager.SaveScene(scene, ScenePath);
             }
 
-            var wanted = new[] { new EditorBuildSettingsScene(ScenePath, true) };
+            var wanted = Scenes();
             var current = EditorBuildSettings.scenes;
-            if (current.Length != 1 || current[0].path != ScenePath || !current[0].enabled)
+            var same = current.Length == wanted.Length;
+            for (var i = 0; same && i < wanted.Length; i++)
             {
-                EditorBuildSettings.scenes = wanted;
+                same = current[i].path == wanted[i] && current[i].enabled;
+            }
+
+            if (!same)
+            {
+                EditorBuildSettings.scenes = Array.ConvertAll(wanted, path => new EditorBuildSettingsScene(path, true));
             }
         }
+
+        /// <summary>The build's scenes in order: the local game, then the online scene if it has been written.</summary>
+        public static string[] Scenes() => File.Exists(OnlineScenePath) ? new[] { ScenePath, OnlineScenePath } : new[] { ScenePath };
 
         /// <summary>The batch build. The output path comes from <c>-buildOutput</c> or <see cref="DefaultOutput"/>.</summary>
         public static void Build()
@@ -55,7 +70,7 @@ namespace Unity.ProjectVania.EditorTools
                 Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output)));
                 var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
                 {
-                    scenes = new[] { ScenePath },
+                    scenes = Scenes(),
                     locationPathName = output,
                     target = BuildTarget.StandaloneWindows64,
                     options = BuildOptions.None,

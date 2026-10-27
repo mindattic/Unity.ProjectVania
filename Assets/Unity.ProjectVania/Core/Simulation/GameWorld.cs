@@ -262,6 +262,9 @@ namespace Unity.ProjectVania.Core.Simulation
         // Who last toggled the console, named on the state changes its slide makes.
         PlayerId _consolePlayer = PlayerId.One;
 
+        // Who typed the line the console is running, named on the script's exit.
+        PlayerId _scriptPlayer = PlayerId.One;
+
         /// <summary>Events produced by the last <see cref="Advance"/> call, oldest first. Cleared on the next call.</summary>
         public IReadOnlyList<IGameEvent> Events => _events;
 
@@ -282,10 +285,16 @@ namespace Unity.ProjectVania.Core.Simulation
         /// Feeds frame time in, runs every fixed step now due and returns how many ran. <paramref name="input"/>, if
         /// given, issues its commands before each step, reading the state that step starts from.
         /// </summary>
-        public int Advance(double deltaSeconds, IStepInput input = null)
+        public int Advance(double deltaSeconds, IStepInput input = null) => Run(_clock.Advance(deltaSeconds), input);
+
+        /// <summary>
+        /// Runs exactly <paramref name="steps"/> fixed steps, whatever the clock says, and returns them; the events of the
+        /// last call are cleared first, as <see cref="Advance"/> does. A world that follows another's steps (online, a
+        /// replica of the authority's, U.VAN-T31) runs only the steps it has been sent, through this.
+        /// </summary>
+        public int Run(int steps, IStepInput input = null)
         {
             _events.Clear();
-            int steps = _clock.Advance(deltaSeconds);
             for (int i = 0; i < steps; i++)
             {
                 input?.BeforeStep(this);
@@ -438,6 +447,7 @@ namespace Unity.ProjectVania.Core.Simulation
                     break;
 
                 case EditConsole edit when Console != null:
+                    _scriptPlayer = edit.Player;
                     Edit(edit);
                     break;
 
@@ -474,8 +484,8 @@ namespace Unity.ProjectVania.Core.Simulation
                     EditorFor(point.Player).Point(point);
                     break;
 
-                case ToggleFullscreen _:
-                    _events.Add(new FullscreenToggled(Tick));
+                case ToggleFullscreen fullscreen:
+                    _events.Add(new FullscreenToggled(Tick, fullscreen.Player));
                     break;
 
                 // U (Play and the editor): QuickBar.ToggleQuickBar, ignored while it slides.
@@ -578,7 +588,7 @@ namespace Unity.ProjectVania.Core.Simulation
             _events.Add(new MuteChanged(Tick, muted));
         }
 
-        void IScriptHost.Quit() => _events.Add(new QuitRequested(Tick));
+        void IScriptHost.Quit() => _events.Add(new QuitRequested(Tick, _scriptPlayer));
 
         void ToggleMenu(PlayerId player)
         {
@@ -623,10 +633,10 @@ namespace Unity.ProjectVania.Core.Simulation
                     switch (Menu.Select())
                     {
                         case MenuAction.Quit:
-                            _events.Add(new QuitRequested(Tick));
+                            _events.Add(new QuitRequested(Tick, player));
                             break;
                         case MenuAction.ToggleFullscreen:
-                            _events.Add(new FullscreenToggled(Tick));
+                            _events.Add(new FullscreenToggled(Tick, player));
                             break;
                     }
 
