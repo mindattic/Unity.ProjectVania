@@ -6,10 +6,12 @@ kneels, slides and wall-slides across a 16-pixel tile grid in front of a painted
 backdrop, with a loose-follow camera, a slide-down typed console, a tile-painting map editor and a
 main menu, all wrapped in a hand-built component "Engine".
 
-[![Unity](https://img.shields.io/badge/Unity-6000.4.3f1-black)](ProjectSettings/ProjectVersion.txt) [![Status](https://img.shields.io/badge/status-reconstruction-orange)](docs/BIBLE.md)
+[![Unity](https://img.shields.io/badge/Unity-6000.4.3f1-black)](ProjectSettings/ProjectVersion.txt) [![Status](https://img.shields.io/badge/status-complete-brightgreen)](docs/BIBLE.md)
 
-There is no build yet. This repo currently holds the Unity project scaffold and the reverse-
-engineering record the rebuild is built from.
+The rebuild is complete: every system the original had plays in Unity 6, matched to the original's
+per-frame arithmetic and verified by an end-to-end scripted run, and the repo is ready to continue
+development on a modern architecture (an engine-free, tested Core; data-driven tuning; everything composed
+in code).
 
 ## Why
 
@@ -33,7 +35,9 @@ brief. Work is tracked as stories under epic `U.VAN-A` in
 
 ## Status
 
-Reconstruction written, implementation not yet started. The stories, in build order:
+Complete. Every story of epic `U.VAN-A` is built and verified (Core tests, EditMode tests, a headless
+build and `unity.ps1 capture` screenshots); the BIBLE records each decision and every fixed defect of the
+original. The stories, in the order they were built:
 
 - Engine-free Core, a fixed 60 Hz simulation and the command/event model
 - Data-driven tuning, content and settings registry
@@ -52,6 +56,32 @@ Reconstruction written, implementation not yet started. The stories, in build or
 - Post-process effects
 - Everything the original left unwired, kept as data
 - Asset parity sweep and the end-to-end scripted verification run
+
+## Build, test, run
+
+Unity 6000.4.3f1 runs headless; nothing needs the Editor open.
+
+| Command | What it does |
+|---|---|
+| `.\run-core-tests.ps1 [-Filter X]` | The engine-free Core tests (`dotnet test`, no Unity) |
+| `.\unity.ps1 compile` | Imports and compiles the project in batch mode |
+| `.\unity.ps1 test [-Filter X]` | The EditMode tests (results in `Logs\editmode.xml`) |
+| `.\unity.ps1 build` | The Windows player in `Build\ProjectVania` |
+| `.\unity.ps1 capture` | Renders the game's states to `Logs\Capture\*.png` (needs graphics) |
+| `.\play.ps1 [-Sound] [-Build]` | Launches the built player, muted unless `-Sound` |
+
+## Architecture
+
+| Assembly | Holds |
+|---|---|
+| `Unity.ProjectVania.Core` | The rules, pure C# (`noEngineReferences`): the 60 Hz world, commands and events, characters, grid, camera, menu, console, HUD, editor, effects arithmetic and the settings registry |
+| `Unity.ProjectVania.Runtime` | Presentation only: the code-built bootstrap, the Input System device, URP rendering, UI Toolkit views, audio |
+| `Unity.ProjectVania.Editor` | Asset importers, the pipeline and scene setup, the batch build and the capture run |
+| `Unity.ProjectVania.Tests` / `Tests/Core.Tests` | EditMode tests and the `dotnet test` Core suite |
+
+Every tuning figure, text and content definition is a JSON file in `Assets/StreamingAssets/Settings`,
+validated on load; state changes only through commands carrying a player id, so presentation never mutates
+the game.
 
 ### Muted launches
 
