@@ -1,0 +1,21 @@
+﻿{
+    "protocolVersion":  "1.2",
+    "code":  "trusty-jaguars",
+    "updatedAt":  "2026-10-24T15:50:18.9913145Z",
+    "savedBy":  "ryandebraal@mindattic.com",
+    "repo":  {
+                 "name":  "Unity.ProjectVania",
+                 "path":  "D:\\Projects\\MindAttic\\Unity.ProjectVania",
+                 "worktree":  false,
+                 "mainRepo":  "D:\\Projects\\MindAttic\\Unity.ProjectVania",
+                 "branch":  "main"
+             },
+    "task":  "Ran /allocate on for Unity.ProjectVania, working open build-order tickets (U.VAN-T7 through U.VAN-T17 plus fix tickets U.VAN-T23/T24) one-by-one via opus/sonnet subagents in their own worktrees as the orchestrator pace allowed; user then ran /allocate off and this CLI quicksaved.",
+    "decisions":  "Each ticket subagent works only in its own git worktree under D:\\Projects\\MindAttic.worktrees\\Unity.ProjectVania\\\u003cticket\u003e, commits, rebases onto main, pushes, then closes its ticket via `tickets ticket close \u003cid\u003e --ref \u003chash\u003e`. Unity project-settings files that Unity rewrites on import (GraphicsSettings.asset, render pipeline assets, etc.) are reverted before commit rather than checked in. Deviations from the original game intentionally kept vs. fixed are recorded in docs/BIBLE.md per ticket.",
+    "state":  "Landed on main: U.VAN-T7 (1ff11d2, input routing), U.VAN-T8 (3063093, collision grid), U.VAN-T9 (aaacff0, player physics), U.VAN-T23 (e97d8db, kneel-release fix), U.VAN-T24 (27ab467, wall-jump push-off fix), U.VAN-T10 (14ea9ae, character animation), U.VAN-T11 (a72a481, level rendering), U.VAN-T12 (56bbaf8, camera system), U.VAN-T13 (37473aa, main menu), U.VAN-T14 (cc5a6e7, console), U.VAN-T15 (bcdf98c, HUD), U.VAN-T16 (5e9b362, audio cues), U.VAN-T17 (58e81e1, map editor). All tickets closed, all tests passing at time of landing. User ran /allocate off; no subagents left running; this CLIs local main branch is behind origin/main (just needs a fetch+rebase to resync, no conflicts expected) and docs/USER_STORIES.md has a long-standing unrelated uncommitted local edit not yet committed.",
+    "next":  "1. If resuming allocate work, run /allocate on again to resume claiming open tickets (orchestrator next --repos \"Unity.ProjectVania\" --claim). 2. Open design question flagged by the U.VAN-T12 camera subagent: it kept the original behavior of zooming/rotating around the maps top-left origin rather than the screen centre - confirm this is wanted or file a fix ticket to change it. 3. Sync local main: git fetch origin \u0026\u0026 git rebase origin/main in D:\\Projects\\MindAttic\\Unity.ProjectVania. 4. Decide whether to commit or discard the long-standing docs/USER_STORIES.md local edit.",
+    "queued":  [
+
+               ],
+    "universe":  ""
+}
