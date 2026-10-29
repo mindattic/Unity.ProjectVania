@@ -4,7 +4,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <IsPackable>false</IsPackable>
-    <AssemblyName>Unity.ProjectVania.Core.Tests</AssemblyName>
+    <AssemblyName>Unity.Rea.ProjectVania.Core.Tests</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
@@ -12,6 +12,6 @@
     <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../Unity.ProjectVania.Core/Unity.ProjectVania.Core.csproj" />
+    <ProjectReference Include="../Unity.Rea.ProjectVania.Core/Unity.Rea.ProjectVania.Core.csproj" />
   </ItemGroup>
 </Project>
