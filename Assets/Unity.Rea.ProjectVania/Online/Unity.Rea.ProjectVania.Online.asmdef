@@ -1,9 +1,9 @@
 {
-    "name": "Unity.ProjectVania.Online",
+    "name": "Unity.Rea.ProjectVania.Online",
     "rootNamespace": "Unity.ProjectVania.Online",
     "references": [
-        "Unity.ProjectVania.Core",
-        "Unity.ProjectVania.Runtime",
+        "Unity.Rea.ProjectVania.Core",
+        "Unity.Rea.ProjectVania.Runtime",
         "Unity.Multiplayer",
         "Unity.Multiplayer.Core",
         "Unity.Multiplayer.UI",

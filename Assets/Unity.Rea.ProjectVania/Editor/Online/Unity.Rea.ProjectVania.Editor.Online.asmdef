@@ -1,33 +1,28 @@
 {
-    "name": "Unity.ProjectVania.Tests.Online",
-    "rootNamespace": "Unity.ProjectVania.Tests.Online",
+    "name": "Unity.Rea.ProjectVania.Editor.Online",
+    "rootNamespace": "Unity.ProjectVania.EditorTools.Online",
     "references": [
-        "Unity.ProjectVania.Core",
-        "Unity.ProjectVania.Runtime",
-        "Unity.ProjectVania.Online",
-        "Unity.ProjectVania.Editor",
-        "Unity.ProjectVania.Editor.Online",
+        "Unity.Rea.ProjectVania.Core",
+        "Unity.Rea.ProjectVania.Runtime",
+        "Unity.Rea.ProjectVania.Online",
+        "Unity.Rea.ProjectVania.Editor",
         "Unity.Multiplayer",
         "Unity.Multiplayer.Core",
+        "Unity.Multiplayer.Editor",
         "Unity.Multiplayer.UI",
         "MindAttic.Components.Unity",
         "MindAttic.Components.Unity.Core",
-        "Unity.Netcode.Runtime",
-        "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
+        "Unity.Netcode.Runtime"
     ],
     "includePlatforms": [
         "Editor"
     ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
-    "overrideReferences": true,
-    "precompiledReferences": [
-        "nunit.framework.dll"
-    ],
+    "overrideReferences": false,
+    "precompiledReferences": [],
     "autoReferenced": false,
     "defineConstraints": [
-        "UNITY_INCLUDE_TESTS",
         "MINDATTIC_COMPONENTS"
     ],
     "versionDefines": [

@@ -1,4 +1,4 @@
-# Unity.ProjectVania
+# Unity.Rea.ProjectVania
 
 A Unity 6 rebuild of *ProjectVania*, a 2009 XNA 3.0 (C#) 2D side-scrolling platformer prototype: a
 Castlevania-flavored character (sprites named Morris, Shanoa, Leo and Richter) that runs, jumps,
@@ -74,10 +74,10 @@ Unity 6000.4.3f1 runs headless; nothing needs the Editor open.
 
 | Assembly | Holds |
 |---|---|
-| `Unity.ProjectVania.Core` | The rules, pure C# (`noEngineReferences`): the 60 Hz world, commands and events, characters, grid, camera, menu, console, HUD, editor, effects arithmetic and the settings registry |
-| `Unity.ProjectVania.Runtime` | Presentation only: the code-built bootstrap, the Input System device, URP rendering, UI Toolkit views, audio |
-| `Unity.ProjectVania.Editor` | Asset importers, the pipeline and scene setup, the batch build and the capture run |
-| `Unity.ProjectVania.Tests` / `Tests/Core.Tests` | EditMode tests and the `dotnet test` Core suite |
+| `Unity.Rea.ProjectVania.Core` | The rules, pure C# (`noEngineReferences`): the 60 Hz world, commands and events, characters, grid, camera, menu, console, HUD, editor, effects arithmetic and the settings registry |
+| `Unity.Rea.ProjectVania.Runtime` | Presentation only: the code-built bootstrap, the Input System device, URP rendering, UI Toolkit views, audio |
+| `Unity.Rea.ProjectVania.Editor` | Asset importers, the pipeline and scene setup, the batch build and the capture run |
+| `Unity.Rea.ProjectVania.Tests` / `Tests/Core.Tests` | EditMode tests and the `dotnet test` Core suite |
 
 Every tuning figure, text and content definition is a JSON file in `Assets/StreamingAssets/Settings`,
 validated on load; state changes only through commands carrying a player id, so presentation never mutates

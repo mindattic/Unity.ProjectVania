@@ -1,6 +1,6 @@
 ---
 codex: 1
-project: Unity.ProjectVania
+project: Unity.Rea.ProjectVania
 layer: bible
 status: living
 updated: 2026-10-24

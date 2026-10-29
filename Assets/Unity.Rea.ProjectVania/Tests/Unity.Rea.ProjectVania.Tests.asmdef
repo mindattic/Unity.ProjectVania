@@ -1,12 +1,12 @@
 {
-    "name": "Unity.ProjectVania.Tests",
+    "name": "Unity.Rea.ProjectVania.Tests",
     "rootNamespace": "Unity.ProjectVania.Tests",
     "references": [
-        "Unity.ProjectVania.Core",
-        "Unity.ProjectVania.Runtime",
+        "Unity.Rea.ProjectVania.Core",
+        "Unity.Rea.ProjectVania.Runtime",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "Unity.ProjectVania.Editor",
+        "Unity.Rea.ProjectVania.Editor",
         "Unity.Shared",
         "Unity.Shared.Core",
         "Unity.InputSystem",

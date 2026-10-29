@@ -1,9 +1,9 @@
 {
-    "name": "Unity.ProjectVania.Editor",
+    "name": "Unity.Rea.ProjectVania.Editor",
     "rootNamespace": "Unity.ProjectVania.EditorTools",
     "references": [
-        "Unity.ProjectVania.Core",
-        "Unity.ProjectVania.Runtime",
+        "Unity.Rea.ProjectVania.Core",
+        "Unity.Rea.ProjectVania.Runtime",
         "Unity.RenderPipelines.Core.Runtime",
         "Unity.RenderPipelines.Universal.Runtime",
         "Unity.RenderPipelines.Universal.2D.Runtime"

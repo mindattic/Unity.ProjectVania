@@ -1,8 +1,8 @@
 {
-    "name": "Unity.ProjectVania.Runtime",
+    "name": "Unity.Rea.ProjectVania.Runtime",
     "rootNamespace": "Unity.ProjectVania",
     "references": [
-        "Unity.ProjectVania.Core",
+        "Unity.Rea.ProjectVania.Core",
         "Unity.Shared",
         "Unity.Shared.Core",
         "Unity.InputSystem"

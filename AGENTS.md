@@ -1,4 +1,4 @@
-# Unity.ProjectVania — agent entrypoint
+# Unity.Rea.ProjectVania — agent entrypoint
 
 Read the shared protocol at ..\mindattic-agent-standard\AGENTS.md, then this file, then
 docs/RECONSTRUCTION.md and docs/BIBLE.md.
